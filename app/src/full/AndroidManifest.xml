@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ★★★ 统一化（A 方案）：全量本体就是唯一那个包，主包里 SplashActivity 仍是唯一启动图标。
+             原来的「黄昏象棋辎重包」独立入口取消（不再装一个包出两个图标）；BoxActivity 保留声明，
+             但只在应用内需要时被拉起（发送方角色如今就在配对页里选）。 -->
+    <application>
+
+        <activity
+            android:name=".BoxActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
+    </application>
+
+</manifest>

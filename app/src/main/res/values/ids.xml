@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ★ tvThinking 已从 activity_main.xml 移除（不再挡棋盘），
+         改为在 MainActivity 里运行时动态创建并挂到 rootMain 底部。
+         这里保留 id 定义，保证代码中的 findViewById(R.id.tvThinking) 可编译可用。 -->
+    <item name="tvThinking" type="id" />
+</resources>

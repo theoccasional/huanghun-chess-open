@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ★ 设置弹窗「紧凑胶囊」按钮底：给文字固定不变的短钮（全局底色/个性化）用。
+     与 bg_pill_button 同一套观感（白基底 + 圆角 + 按压涟漪、照旧吃 backgroundTint 动态着色），
+     只把圆角由 18dp 收小到 11dp —— 圆弧提前收口、不再那么椭，中段直线更长，
+     短钮因此更紧凑，省下的横向空间让给「皮肤:璀璨黄金」把 4 个字显示全。 -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#40FFFFFF">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FFF7F2E6" />
+            <corners android:radius="11dp" />
+        </shape>
+    </item>
+</ripple>

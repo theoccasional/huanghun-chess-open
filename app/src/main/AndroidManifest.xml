@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 网络权限：棋谱库 / 云库等功能 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- DUMP 权限 — 调试诊断 -->
+    <uses-permission android:name="android.permission.DUMP" />
+    <!-- ★「观战」非无障碍连线：把思考细节与连线以悬浮窗盖在别的 App 的对弈界面之上 -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- ★「观战」录屏识别：前台服务 + MediaProjection（免无障碍，一次授权即可） -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:name=".XiangqiApplication"
+        android:allowBackup="true"
+        android:extractNativeLibs="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="黄昏象棋"
+        android:supportsRtl="true"
+        android:requestLegacyExternalStorage="true"
+        android:largeHeap="true"
+        android:usesCleartextTraffic="true"
+        android:theme="@style/Theme.PikafishChess">
+        <!-- ★ 辎重包与操作包分离：android:usesCleartextTraffic="true" 让局域网内
+             的 http:// 直读（本机共享服务 / 电脑端文件服务）可以正常工作。 -->
+
+        <!-- ★ 双人对战 · 挑战模式同款界面（副本，复用 ChessBoardView，不改挑战原稿） -->
+        <activity
+            android:name=".duel.DuelUiActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
+        <!-- ★ 双人对战（同 WiFi/热点）：房间 + 双方到齐才开局 -->
+        <activity
+            android:name=".duel.DuelActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
+        <!-- ★ 发送端控制台：出配对码 + 借出本机引擎 + 连接状态/小棋盘/思考细节 + 切换引擎/加载开局库 -->
+        <activity
+            android:name=".SenderActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
+        <!-- ★ 主界面：由 Splash 首装解压/首启后进入，右下角小窗播放宣传视频（不阻塞操作） -->
+        <activity
+            android:name=".MainActivity"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:supportsPictureInPicture="true"
+            android:resizeableActivity="true"
+            android:exported="false">
+        </activity>
+
+        <!-- ★ 启动入口：首次安装先解压 ONNX 组件并展示真实进度条 → 安装成功 → 进主界面；
+             非首次直接进主界面（瞬时），不阻塞操作。 -->
+        <activity
+            android:name=".SplashActivity"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:exported="true"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- ★ 辎重包控制台：接入/共享辎重包。可本机选文件、从地址远程直读（不整份取回）、
+             下载到本机、以及「共享本机辎重包」（手机互连，让其他手机/电脑直读）。 -->
+        <activity
+            android:name=".HeavyShareActivity"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:exported="false"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+        </activity>
+
+        <!-- ★★★ 「打开其他应用」专用入口：从 QQ / 文件管理器等外部应用经 ACTION_VIEW 唤起。
+             关键在下面两行 —— 独立任务亲和度 + singleTask：让黄昏象棋**单独起一个自己的任务**，
+             不再被塞进 QQ 的任务栈（最近任务里不再"套在 QQ 壳子里"），与主界面入口各是各的。
+             业务逻辑全继承 SplashActivity：读外部文件 → 进主界面 → 入宝库直接开谱。 -->
+        <activity
+            android:name=".OpenWithActivity"
+            android:taskAffinity="com.pikafish.chess.openwith"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:exported="true"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+
+            <!-- ★★★ 与 QQ / 文件管理器「打开其他应用」对接：把本应用登记为象棋棋谱格式的处理者。
+                 场景：QQ 群里文件下载好 → 直接点「打开其他应用」→ 选「黄昏象棋」，
+                 本页立刻把文件内容读进缓存目录（趁 URI 读权限还在），再把本地路径交给主界面：
+                 自动落进宝库「我的上传」并直接开谱——等同人工点完 宝库→我的上传→该文件。
+                 下面用「MIME 类型」+「扩展名」双保险，CBL / CBR / XQF / PGN / TXT… 一并认领。 -->
+
+            <!-- ① MIME 认领：MimeTypeMap 不认识的棋谱扩展名（cbl/cbr/xqf/pgn/pfc/obk…）在分享时
+                    一律被标成 application/octet-stream，这里把它接下，即可出现在候选列表里。 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="application/x-chess-pgn" />
+                <data android:mimeType="application/vnd.chess-pgn" />
+                <data android:mimeType="application/x-pgn" />
+                <!-- ★ 棋子皮肤包：QQ 下载的皮肤包多为 ZIP（也常被标成 octet-stream），一并接下，
+                     进来后按内容嗅探分流到「视觉 ▸ 个性化」，不会误塞进棋谱宝库。 -->
+                <data android:mimeType="application/zip" />
+                <data android:mimeType="application/x-zip-compressed" />
+                <data android:mimeType="application/x-zip" />
+                <!-- 少数机型的 MimeTypeMap 会给棋谱后缀塞上这些"冷门类型"，一并认领，避免漏接。 -->
+                <data android:mimeType="application/x-cbl" />
+                <data android:mimeType="application/x-cbr" />
+                <data android:mimeType="application/x-xqf" />
+                <data android:mimeType="application/x-qyl" />
+                <data android:mimeType="application/x-chess" />
+            </intent-filter>
+
+            <!-- ② 扩展名认领（类型为空的 content:// / file:// 也认）：QQ 有时不设置 MIME。 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:pathPattern=".*\\.cbl" />
+                <data android:pathPattern=".*\\.cbr" />
+                <data android:pathPattern=".*\\.xqf" />
+                <data android:pathPattern=".*\\.qyl" />
+                <data android:pathPattern=".*\\.pgn" />
+                <data android:pathPattern=".*\\.txt" />
+                <data android:pathPattern=".*\\.pfc" />
+                <data android:pathPattern=".*\\.che" />
+                <data android:pathPattern=".*\\.xq" />
+                <data android:pathPattern=".*\\.obk" />
+                <data android:pathPattern=".*\\.pkb" />
+                <data android:pathPattern=".*\\.ubb" />
+                <data android:pathPattern=".*\\.CBL" />
+                <data android:pathPattern=".*\\.CBR" />
+                <data android:pathPattern=".*\\.XQF" />
+                <data android:pathPattern=".*\\.QYL" />
+                <data android:pathPattern=".*\\.PGN" />
+                <data android:pathPattern=".*\\.TXT" />
+                <!-- ★ ZIP：既是棋谱包也可能是棋子皮肤包，先接下，进来按内容分流（皮肤→个性化 / 棋谱→宝库） -->
+                <data android:pathPattern=".*\\.zip" />
+                <data android:pathPattern=".*\\.ZIP" />
+                <data android:pathPattern=".*\\.Zip" />
+            </intent-filter>
+
+            <!-- ③ 扩展名认领（带类型）：多数分享方会捎上 application/octet-stream 等类型，
+                    此时只要路径后缀命中就接住。 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.cbl" />
+                <data android:pathPattern=".*\\.cbr" />
+                <data android:pathPattern=".*\\.xqf" />
+                <data android:pathPattern=".*\\.qyl" />
+                <data android:pathPattern=".*\\.pgn" />
+                <data android:pathPattern=".*\\.txt" />
+                <data android:pathPattern=".*\\.pfc" />
+                <data android:pathPattern=".*\\.che" />
+                <data android:pathPattern=".*\\.xq" />
+                <data android:pathPattern=".*\\.obk" />
+                <data android:pathPattern=".*\\.pkb" />
+                <data android:pathPattern=".*\\.ubb" />
+                <data android:pathPattern=".*\\.CBL" />
+                <data android:pathPattern=".*\\.CBR" />
+                <data android:pathPattern=".*\\.XQF" />
+                <data android:pathPattern=".*\\.QYL" />
+                <data android:pathPattern=".*\\.PGN" />
+                <data android:pathPattern=".*\\.TXT" />
+                <!-- ★ ZIP：既是棋谱包也可能是棋子皮肤包，先接下，进来按内容分流（皮肤→个性化 / 棋谱→宝库） -->
+                <data android:pathPattern=".*\\.zip" />
+                <data android:pathPattern=".*\\.ZIP" />
+                <data android:pathPattern=".*\\.Zip" />
+            </intent-filter>
+
+            <!-- ★★★ 外置读物：把本应用也登记为 PDF 的处理者。
+                     场景：QQ 群里下载的 PDF → 点「打开其他应用」→ 选「黄昏象棋」→
+                     该书自动落进「更多 ▸ 外置读物」书架并立即开读（目录/进度/标记俱全）。
+                     下面用「MIME 类型」+「扩展名」双保险：content:// 常常没有后缀，靠 MIME 接住。 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.pdf" />
+                <data android:pathPattern=".*\\.PDF" />
+                <data android:pathPattern=".*\\.Pdf" />
+            </intent-filter>
+        </activity>
+
+        <!-- ★ 独立进程解惑沙盒：连主线程都与主界面分开，再卡/再崩都不冻主界面 -->
+        <activity
+            android:name=".ui.AnalysisSandboxActivity"
+            android:process=":sandbox"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize"
+            android:exported="false"
+            android:theme="@style/Theme.ChallengeFullscreen" />
+
+        <!-- ★ 背谱沙盘：专门打谱，不用引擎（谱面约束选择机制），纯谱遍历，无需独立进程 -->
+        <activity
+            android:name=".ui.BookSandboxActivity"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize"
+            android:exported="false"
+            android:theme="@style/Theme.ChallengeFullscreen" />
+
+        <!-- ★ 挑战模式：独立进程对战，只走棋不解说，再卡/再崩也不冻主界面 -->
+        <activity
+            android:name=".ui.ChallengeActivity"
+            android:process=":challenge"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize"
+            android:exported="false"
+            android:theme="@style/Theme.ChallengeFullscreen" />
+
+        <!-- ★ 微思象棋播放器：WebView 承载完整离线播放器，支持XQF/PGN/东萍等谱及变招 -->
+        <activity
+            android:name=".ui.WebPlayerActivity"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false"
+            android:theme="@style/Theme.PikafishWebPlayer" />
+
+        <!-- ★ 个性化：导入外置Zip皮肤包，跨包混配红/黑棋子与洗净棋盘背景 -->
+        <activity
+            android:name=".ui.PersonalizeActivity"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
+
+        <!-- ★ 清新人生：《清新人生手册》全屏阅读器。独立 Activity → 返回键不再可能失灵 -->
+        <activity
+            android:name=".ui.ReaderActivity"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
+        <!-- ★ 外置读物：全屏 PDF 阅读器（自带目录/进度记忆/标记/缩放/滚屏）。
+             也是独立 Activity：退出阅读只退这一步，回到主界面继续下棋，不会一退到底。 -->
+        <activity
+            android:name=".ui.PdfReaderActivity"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
+        <!-- ★★★「观战」非无障碍连线的录屏识别前台服务（YK 源码逐字移植）：
+             由隐藏入口（顶栏「哈希xx MB」连点三下）经 MediaProjection 授权后拉起；
+             全屏自动定位棋盘 → 逐帧识别 → 归约局面，并在系统浮层画连线与思考细节。
+             不涉及任何无障碍服务，故与 AccessibilityService 无关。 -->
+        <service
+            android:name="com.yk.xiangqi.link.LinkForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
+
+        <!-- ★ 无障碍自动连线：把引擎算出的走子在真棋盘上点两下走出（可选，默认关闭） -->
+        <service
+            android:name="com.yk.xiangqi.link.LinkAccessibilityService"
+            android:label="黄昏象棋连线"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/link_accessibility_service" />
+        </service>
+
+        <!-- ★ FileProvider：拍照时共享临时文件URI -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+            <activity android:name=".ritual.RitualActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+    <activity android:name=".qipu.GuideActivity"
+        android:exported="false"
+        android:label="匹配推荐" />
+    <service
+        android:name=".EngineKeepAliveService"
+        android:exported="false" />
+</application>
+
+</manifest>

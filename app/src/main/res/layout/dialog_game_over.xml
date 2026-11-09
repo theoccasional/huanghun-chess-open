@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="280dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/dialog_bg">
+
+    <!-- 标题栏：标题 + 关闭按钮 -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="对局结束"
+            android:textColor="#E8D5A3"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_centerVertical="true" />
+
+        <Button
+            android:id="@+id/btnCloseDialog"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:text="✕"
+            android:textSize="14sp"
+            android:textColor="#AAAAAA"
+            android:background="@drawable/btn_close_bg"
+            android:padding="0dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp" />
+    </RelativeLayout>
+
+    <!-- 结果信息 -->
+    <TextView
+        android:id="@+id/tvGameResult"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="红方胜！"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:padding="12dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/edittext_dark_bg" />
+
+    <!-- 说明文字 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="关闭弹窗可查看最终棋局"
+        android:textColor="#888888"
+        android:textSize="11sp"
+        android:gravity="center"
+        android:layout_marginBottom="12dp" />
+
+    <!-- 按钮区域 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/btnRematch"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="再来一局"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:backgroundTint="#FFB300" />
+
+        <Button
+            android:id="@+id/btnSwapSides"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="换边"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:backgroundTint="#5C5040" />
+    </LinearLayout>
+
+</LinearLayout>

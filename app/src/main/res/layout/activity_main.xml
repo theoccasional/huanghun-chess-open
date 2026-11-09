@@ -1,0 +1,1731 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ★ 全屏棋盘方案：根布局改为 FrameLayout —— 棋盘占满整屏、纹丝不动，
+     状态栏/摆子面板/思考区/主菜单/底栏 全部改为悬浮「贴纸」浮在棋盘之上
+     （layout_gravity 定位，互不挤压、绝不串动）。棋盘大小只由全屏视图自身
+     按 9×10 自适应居中测算，不再受任何菜单高度影响，百分比锚点永久稳定，
+     重启不再疯长/乱扯（96变87、157疯涨从此绝迹）。 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootMain"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_app_backdrop"
+    android:clipToPadding="false"
+    android:clipChildren="false">
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!--  棋盘：占满整屏（外套 FrameLayout 承载居中变招气泡） -->
+    <!--  ★ 全屏方案：match_parent×match_parent，棋盘视图内部按 9×10 自适应居中，
+           任何贴纸显隐都不再改变棋盘视图尺寸 → 棋盘大小纹丝不动 -->
+    <!--  ★ 置于最底层：状态栏/摆子面板/思考区/主菜单/底栏 全部悬浮于其上，
+           贴纸可点、棋盘可下，互不抢触摸、互不挤布局 -->
+    <!-- ══════════════════════════════════════════════ -->
+    <FrameLayout
+        android:id="@+id/frameBoardOuter"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <com.pikafish.chess.ui.ChessBoardView
+            android:id="@+id/chessBoard"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- ★ 分析浮透：分析内容半透明浮现在棋盘上部（状态栏下方，永不被底部贴纸遮挡）。
+             既看得见棋盘，又读得清文字 —— 目不转睛聚焦棋局与讲解；
+             非可点击，绝不挡走子手势。 -->
+        <TextView
+            android:id="@+id/tvFloatOverlay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="44dp"
+            android:background="@drawable/bg_float_overlay"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="9dp"
+            android:textColor="#FFF6E8D8"
+            android:textSize="14sp"
+            android:lineSpacingExtra="3dp"
+            android:maxLines="6"
+            android:gravity="center_vertical"
+            android:shadowColor="#CC000000"
+            android:shadowRadius="2"
+            android:shadowDy="1"
+            android:elevation="10dp"
+            android:visibility="gone"
+            android:clickable="false"
+            android:focusable="false"
+            android:alpha="0.92"
+            android:contentDescription="分析浮透" />
+
+        <!-- ★ 解说弹窗：人话/现世报的解说不再就地显示在窗口区，而是像『分析浮透』一样
+             透明浮现在棋盘上，透棋读字、不挡走子手势、可随手拖动——挡哪儿就挪哪儿。
+             保持矮小不拱高（最多5行），不学棋谱那种高箱。 -->
+        <TextView
+            android:id="@+id/tvCommentaryFloat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="170dp"
+            android:background="@drawable/bg_float_overlay"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp"
+            android:textColor="#FFF6E8D8"
+            android:textSize="14sp"
+            android:lineSpacingExtra="2dp"
+            android:maxLines="5"
+            android:gravity="center_vertical"
+            android:shadowColor="#CC000000"
+            android:shadowRadius="2"
+            android:shadowDy="1"
+            android:elevation="10dp"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true"
+            android:alpha="0.94"
+            android:contentDescription="解说弹窗（可拖动）" />
+
+        <!-- ★ 背谱变招气泡：透明、浮在棋盘上部（状态栏下方，永不被底部贴纸遮挡），点一下即可关掉 -->
+        <TextView
+            android:id="@+id/bubbleBookBranch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="48dp"
+            android:visibility="gone"
+            android:alpha="0"
+            android:background="@drawable/bubble_branch_bg"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp"
+            android:gravity="center"
+            android:textColor="#FFF6E0"
+            android:textSize="16sp"
+            android:lineSpacingExtra="2dp" />
+    </FrameLayout>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!--  顶部状态栏贴纸：引擎信息 + 当前状态 + 动态表情 -->
+    <!--  ★ 悬浮贴纸：浮在棋盘顶端，不再占用棋盘布局空间 -->
+    <!-- ══════════════════════════════════════════════ -->
+    <LinearLayout
+        android:id="@+id/layoutStatusBar"
+        android:layout_width="match_parent"
+        android:layout_height="38dp"
+        android:layout_gravity="top"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="10dp"
+        android:background="@drawable/bg_statusbar"
+        android:elevation="10dp">
+
+        <TextView
+            android:id="@+id/btnBookMenu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:text="开局库"
+            android:textColor="@color/status_bar_text"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/tvStatusEmoji"
+            android:layout_width="24dp"
+            android:layout_height="wrap_content"
+            android:text="🔴"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_marginEnd="4dp" />
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="请红方走棋了"
+            android:textColor="@color/status_bar_text"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvEngineInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="黄昏引擎"
+            android:textColor="@color/text_secondary"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!--  摆子模式贴纸：棋子选择面板（浮在顶部、状态栏下方） -->
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- ══════════════════════════════════════════════ -->
+    <!--  摆子底座：原图对比区 + 左右选子/功能，固定高度、不可拖拽伸缩 -->
+    <!-- ══════════════════════════════════════════════ -->
+    <LinearLayout
+        android:id="@+id/layoutSetupPanel"
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:layout_gravity="top"
+        android:layout_marginTop="510dp"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:background="@color/panel_bg"
+        android:elevation="10dp">
+
+        <!-- ── 摆子面板：第1排选子 / 第2排功能按钮 / 第3排拍照图库（无原图） ── -->
+        <LinearLayout
+            android:id="@+id/layoutSetupPanelCore"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="3dp">
+
+            <!-- ══ 第1排：选子（鼓型棋子，红方一行 / 黑方一行） ══ -->
+            <LinearLayout
+                android:id="@+id/colSetupLeft"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <!-- 第1行：红方 帅仕相车马炮兵（鼓型红子），左补拍照 / 右补图库 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center">
+
+                    <Button android:id="@+id/btnSetupCamera" style="@style/PremiumButton"
+                        android:layout_width="wrap_content" android:layout_height="30dp"
+                        android:minWidth="0dp"
+                        android:layout_marginEnd="3dp"
+                        android:gravity="center"
+                        android:text="拍照" android:textSize="10sp"
+                        android:paddingHorizontal="4dp" android:paddingVertical="0dp"
+                        android:backgroundTint="@color/btn_secondary" />
+                    <Button android:id="@+id/btnRedKing" style="@style/PremiumButton"
+                        android:layout_width="34dp" android:layout_height="34dp"
+                        android:text="帅" android:textSize="15sp" android:textColor="#FFFFFF"
+                        android:textStyle="bold" android:padding="0dp"
+                        android:background="@drawable/bg_piece_red" android:layout_marginEnd="3dp"  android:backgroundTint="@null" />
+                    <Button android:id="@+id/btnRedAdvisor" style="@style/PremiumButton"
+                        android:layout_width="34dp" android:layout_height="34dp"
+                        android:text="仕" android:textSize="15sp" android:textColor="#FFFFFF"
+                        android:textStyle="bold" android:padding="0dp"
+                        android:background="@drawable/bg_piece_red" android:layout_marginEnd="3dp"  android:backgroundTint="@null" />
+                    <Button android:id="@+id/btnRedElephant" style="@style/PremiumButton"
+                        android:layout_width="34dp" android:layout_height="34dp"
+                        android:text="相" android:textSize="15sp" android:textColor="#FFFFFF"
+                        android:textStyle="bold" android:padding="0dp"
+                        android:background="@drawable/bg_piece_red" android:layout_marginEnd="3dp"  android:backgroundTint="@null" />
+                    <Button android:id="@+id/btnRedRook" style="@style/PremiumButton"
+                        android:layout_width="34dp" android:layout_height="34dp"
+                        android:text="车" android:textSize="15sp" android:textColor="#FFFFFF"
+                        android:textStyle="bold" android:padding="0dp"
+                        android:background="@drawable/bg_piece_red" android:layout_marginEnd="3dp"  android:backgroundTint="@null" />
+                    <Button android:id="@+id/btnRedKnight" style="@style/PremiumButton"
+                        android:layout_width="34dp" android:layout_height="34dp"
+                        android:text="马" android:textSize="15sp" android:textColor="#FFFFFF"
+                        android:textStyle="bold" android:padding="0dp"
+                        android:background="@drawable/bg_piece_red" android:layout_marginEnd="3dp"  android:backgroundTint="@null" />
+                    <Button android:id="@+id/btnRedCannon" style="@style/PremiumButton"
+                        android:layout_width="34dp" android:layout_height="34dp"
+                        android:text="炮" android:textSize="15sp" android:textColor="#FFFFFF"
+                        android:textStyle="bold" android:padding="0dp"
+                        android:background="@drawable/bg_piece_red" android:layout_marginEnd="3dp"  android:backgroundTint="@null" />
+                    <Button android:id="@+id/btnRedPawn" style="@style/PremiumButton"
+                        android:layout_width="34dp" android:layout_height="34dp"
+                        android:text="兵" android:textSize="15sp" android:textColor="#FFFFFF"
+                        android:textStyle="bold" android:padding="0dp"
+                        android:background="@drawable/bg_piece_red"  android:backgroundTint="@null" />
+                    <Button android:id="@+id/btnSetupGallery" style="@style/PremiumButton"
+                        android:layout_width="wrap_content" android:layout_height="30dp"
+                        android:minWidth="0dp"
+                        android:layout_marginStart="3dp"
+                        android:gravity="center"
+                        android:text="图库" android:textSize="10sp"
+                        android:paddingHorizontal="4dp" android:paddingVertical="0dp"
+                        android:backgroundTint="@color/btn_secondary" />
+                </LinearLayout>
+
+                <!-- 第2行：黑方 将士象车马炮卒（鼓型黑子）+ 翻转 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:orientation="horizontal"
+                    android:gravity="center">
+
+                    <Button android:id="@+id/btnBlackKing" style="@style/PremiumButton"
+                        android:layout_width="34dp" android:layout_height="34dp"
+                        android:text="将" android:textSize="15sp" android:textColor="#FFFFFF"
+                        android:textStyle="bold" android:padding="0dp"
+                        android:background="@drawable/bg_piece_black" android:layout_marginEnd="3dp"  android:backgroundTint="@null" />
+                    <Button android:id="@+id/btnBlackAdvisor" style="@style/PremiumButton"
+                        android:layout_width="34dp" android:layout_height="34dp"
+                        android:text="士" android:textSize="15sp" android:textColor="#FFFFFF"
+                        android:textStyle="bold" android:padding="0dp"
+                        android:background="@drawable/bg_piece_black" android:layout_marginEnd="3dp"  android:backgroundTint="@null" />
+                    <Button android:id="@+id/btnBlackElephant" style="@style/PremiumButton"
+                        android:layout_width="34dp" android:layout_height="34dp"
+                        android:text="象" android:textSize="15sp" android:textColor="#FFFFFF"
+                        android:textStyle="bold" android:padding="0dp"
+                        android:background="@drawable/bg_piece_black" android:layout_marginEnd="3dp"  android:backgroundTint="@null" />
+                    <Button android:id="@+id/btnBlackRook" style="@style/PremiumButton"
+                        android:layout_width="34dp" android:layout_height="34dp"
+                        android:text="车" android:textSize="15sp" android:textColor="#FFFFFF"
+                        android:textStyle="bold" android:padding="0dp"
+                        android:background="@drawable/bg_piece_black" android:layout_marginEnd="3dp"  android:backgroundTint="@null" />
+                    <Button android:id="@+id/btnBlackKnight" style="@style/PremiumButton"
+                        android:layout_width="34dp" android:layout_height="34dp"
+                        android:text="马" android:textSize="15sp" android:textColor="#FFFFFF"
+                        android:textStyle="bold" android:padding="0dp"
+                        android:background="@drawable/bg_piece_black" android:layout_marginEnd="3dp"  android:backgroundTint="@null" />
+                    <Button android:id="@+id/btnBlackCannon" style="@style/PremiumButton"
+                        android:layout_width="34dp" android:layout_height="34dp"
+                        android:text="炮" android:textSize="15sp" android:textColor="#FFFFFF"
+                        android:textStyle="bold" android:padding="0dp"
+                        android:background="@drawable/bg_piece_black" android:layout_marginEnd="3dp"  android:backgroundTint="@null" />
+                    <Button android:id="@+id/btnBlackPawn" style="@style/PremiumButton"
+                        android:layout_width="34dp" android:layout_height="34dp"
+                        android:text="卒" android:textSize="15sp" android:textColor="#FFFFFF"
+                        android:textStyle="bold" android:padding="0dp"
+                        android:background="@drawable/bg_piece_black" android:layout_marginEnd="4dp"  android:backgroundTint="@null" />
+
+                    <!-- 翻转：放黑方这一行右侧 -->
+                    <Button android:id="@+id/btnSetupFlip" style="@style/PremiumButton"
+                        android:layout_width="wrap_content" android:layout_height="30dp"
+                        android:minWidth="0dp"
+                        android:gravity="center"
+                        android:text="🔃 翻转" android:textSize="12sp"
+                        android:paddingHorizontal="4dp" android:paddingVertical="0dp"
+                        android:backgroundTint="@color/btn_secondary" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ══ 第3排：功能按钮 ══ -->
+            <LinearLayout
+                android:id="@+id/colSetupRight"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginTop="10dp">
+
+                <!-- 第一行：返回 清空 标准 红先 完成 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingVertical="1dp">
+                    <Button android:id="@+id/btnSetupReturn" style="@style/PremiumButton"
+                        android:layout_width="0dp" android:layout_height="30dp" android:layout_weight="1"
+                        android:layout_marginEnd="2dp" android:text="←返回" android:textSize="11sp"
+                        android:padding="0dp" android:backgroundTint="@color/btn_secondary" />
+                    <Button android:id="@+id/btnSetupClear" style="@style/PremiumButton"
+                        android:layout_width="0dp" android:layout_height="30dp" android:layout_weight="1"
+                        android:layout_marginEnd="2dp" android:text="清空" android:textSize="11sp"
+                        android:padding="0dp" />
+                    <Button android:id="@+id/btnSetupStandard" style="@style/PremiumButton"
+                        android:layout_width="0dp" android:layout_height="30dp" android:layout_weight="1"
+                        android:layout_marginEnd="2dp" android:text="标准" android:textSize="11sp"
+                        android:padding="0dp" />
+                    <Button android:id="@+id/btnSetupFirst" style="@style/PremiumButton"
+                        android:layout_width="0dp" android:layout_height="30dp" android:layout_weight="1"
+                        android:layout_marginEnd="2dp" android:text="红先" android:textSize="11sp"
+                        android:padding="0dp" />
+                    <Button android:id="@+id/btnSetupDone" style="@style/PremiumButton"
+                        android:layout_width="0dp" android:layout_height="30dp" android:layout_weight="1.2"
+                        android:padding="0dp"
+                        android:text="完成" android:textSize="12sp"
+                        android:backgroundTint="@color/btn_success" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!--  正常模式：横排Tab式菜单（5个Tab） — 固定高度紧凑堆叠，棋盘最大化 -->
+    <!-- ══════════════════════════════════════════════ -->
+    <!--  主菜单贴纸：页签 + 内容 + 快捷栏/播放栏（浮在底部、常驻底栏上方） -->
+    <!--  ★ 悬浮贴纸：点「隐」整块收掉、棋盘几乎全露；点「显」原位弹回，棋盘纹丝不动 -->
+    <!-- ══════════════════════════════════════════════ -->
+    <LinearLayout
+        android:id="@+id/layoutNormalControls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="30dp"
+        android:orientation="vertical"
+        android:visibility="visible"
+        android:background="@color/panel_bg"
+        android:elevation="10dp">
+
+        <!-- ── 横排Tab栏（5个Tab均匀分布，等宽等隙成段）── -->
+        <LinearLayout
+            android:id="@+id/layoutTabRow"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="3dp"
+            android:background="@color/tab_bar_bg">
+
+            <!-- ★ 胶囊钮：只换「底形状」为两端全圆的胶囊，行高/行宽/定位点分毫不动，
+                 面积绝不越界（34dp 高 → 18dp 圆角被钳到 17dp 即满圆两端）；
+                 backgroundTint 照旧由页签高亮/全局钮色动态着色，换底不换色。 -->
+            <Button
+                android:id="@+id/btnTabSettings"
+                style="@style/TabButton"
+                android:layout_width="0dp"
+                android:layout_height="34dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="2dp"
+                android:textSize="15sp"
+                android:text="设置"
+                android:background="@drawable/bg_pill_button"
+                android:backgroundTint="@color/tab_active" />
+
+            <Button
+                android:id="@+id/btnTabGame"
+                style="@style/TabButton"
+                android:layout_width="0dp"
+                android:layout_height="34dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="2dp"
+                android:textSize="15sp"
+                android:text="对弈"
+                android:background="@drawable/bg_pill_button" />
+
+            <Button
+                android:id="@+id/btnTabNotation"
+                style="@style/TabButton"
+                android:layout_width="0dp"
+                android:layout_height="34dp"
+                android:layout_weight="1"
+                android:textSize="15sp"
+                android:text="棋谱"
+                android:background="@drawable/bg_pill_button" />
+        </LinearLayout><!-- /tab栏 -->
+
+        <!-- ── 组件 A：菜单系统（页签栏 + 各页子面板）—— 硬组件一套 ── -->
+        <LinearLayout
+            android:id="@+id/layoutGroupA"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!--  页签内容区：固定高度(≈参数页最大面积)，棋盘高度恒定不跳；
+              任何页都套在这个硬框内，超长时可区内滚动 -->
+        <!-- ══════════════════════════════════════════════ -->
+        <ScrollView
+            android:id="@+id/scrollTabContent"
+            android:layout_width="match_parent"
+            android:layout_height="96dp"
+            android:layout_marginTop="1dp"
+            android:paddingHorizontal="3dp"
+            android:paddingVertical="1dp"
+            android:scrollbars="vertical"
+            android:overScrollMode="always"
+            android:background="@color/panel_bg">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+        <!-- ★ 棋谱/解说 通用区：原来悬浮在 Tab 按钮上方的棋谱条已移入这块空地，
+             任一个 Tab 收起(留空地)时在此铺开完整走棋记录，超长区内滚动阅读。
+             普通显示由 collapseAllPanels() 打开、showXxxPanel() 收起。 -->
+        <ScrollView
+            android:id="@+id/scrollViewExplanation"
+            android:layout_width="match_parent"
+            android:layout_height="116dp"
+            android:background="@drawable/bg_commentary_banner"
+            android:padding="4dp"
+            android:scrollbars="vertical"
+            android:overScrollMode="always"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/layoutExplanationList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvExplanation"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="走棋后这里会显示解说…"
+                    android:textColor="@color/commentary_text"
+                    android:textSize="13sp"
+                    android:lineSpacingExtra="2dp" />
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- ── 参数面板 ── -->
+        <LinearLayout
+            android:id="@+id/layoutParamsContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="visible"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="3dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:paddingVertical="2dp">
+
+                <!-- ★ 云库开关按钮（左半边） -->
+                <Button android:id="@+id/btnCloudBook"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="0.6" android:layout_marginEnd="3dp"
+                    android:text="云库:关"
+                    android:textSize="13sp" />
+
+                <!-- ★ 步时/深度模式切换按钮（右半边） -->
+                <Button android:id="@+id/btnMode"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="0.7" android:layout_marginEnd="3dp"
+                    android:text="步时:5秒"
+                    android:textSize="13sp" />
+
+                <EditText android:id="@+id/etValue"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="0.6" android:layout_marginEnd="3dp"
+                    android:inputType="number" android:text="5"
+                    android:textSize="14sp" android:gravity="center"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#AAFFFFFF"
+                    android:background="@drawable/edittext_dark_bg" />
+
+                <!-- ★ −/+ 步进钮：纯圆（宽=高=34dp），符号居中；
+                     只有一个符号，椭圆/胶囊不好看，纯圆最周正。 -->
+                <Button android:id="@+id/btnMinus"
+                    style="@style/PremiumButton"
+                    android:layout_width="34dp" android:layout_height="34dp"
+                    android:background="@drawable/bg_circle_button"
+                    android:layout_marginEnd="1dp" android:text="−"
+                    android:textSize="16sp" android:padding="0dp"
+                    android:contentDescription="步时减一" />
+
+                <Button android:id="@+id/btnPlus"
+                    style="@style/PremiumButton"
+                    android:layout_width="34dp" android:layout_height="34dp"
+                    android:background="@drawable/bg_circle_button"
+                    android:layout_marginEnd="3dp" android:text="+"
+                    android:textSize="16sp" android:padding="0dp"
+                    android:contentDescription="步时加一" />
+
+                <Button android:id="@+id/btnDetail"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="1.0" android:layout_marginStart="2dp"
+                    android:text="细节:开"
+                    android:textSize="13sp" />
+
+                <!-- ★ 分析浮透并入「细节」同行，紧跟其后，省掉独立一行。
+                     本行 细节/浮透 两个等权按钮均匀分布。 -->
+                <Button android:id="@+id/btnFloatOverlay"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="1.0" android:layout_marginStart="1dp"
+                    android:text="浮透:关"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- ★ 分析浮透已并入「细节」同行，省掉一行；下面哈希/线程/应用/时间/恢复 仍是独立一行 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:paddingVertical="2dp">
+
+                <EditText android:id="@+id/etHash"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="0.36" android:layout_marginEnd="3dp"
+                    android:inputType="number" android:text="256"
+                    android:textSize="12sp" android:gravity="center"
+                    android:hint="哈希MB" android:paddingHorizontal="2dp"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#AAFFFFFF"
+                    android:background="@drawable/edittext_dark_bg" />
+
+                <EditText android:id="@+id/etThreads"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="0.36" android:layout_marginEnd="3dp"
+                    android:inputType="number" android:text="4"
+                    android:textSize="12sp" android:gravity="center"
+                    android:hint="线程" android:paddingHorizontal="2dp"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#AAFFFFFF"
+                    android:background="@drawable/edittext_dark_bg" />
+
+                <Button android:id="@+id/btnApplySettings"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="0.34" android:layout_marginEnd="3dp"
+                    android:paddingHorizontal="2dp"
+                    android:textSize="12sp"
+                    android:text="应用" />
+
+                <!-- ★ 后台思考开关：人脑思考时，电脑（空闲那台引擎）先开 MultiPV 预想，
+                     人脑一走若命中预案就秒走；挤在「应用」后面，与「时间」「恢复」同排。 -->
+                <Button android:id="@+id/btnAlwaysThink"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="0.46" android:layout_marginEnd="3dp"
+                    android:paddingHorizontal="1dp"
+                    android:text="后台:关"
+                    android:textSize="12sp" />
+
+                <Button android:id="@+id/btnTimeToggle"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="0.4" android:layout_marginEnd="3dp"
+                    android:paddingHorizontal="1dp"
+                    android:text="时间:关"
+                    android:textSize="12sp" />
+
+                <Button android:id="@+id/btnEngineRecover"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="0.4"
+                    android:paddingHorizontal="1dp"
+                    android:text="恢复"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ── 对弈面板（翻页：①②）── -->
+        <LinearLayout
+            android:id="@+id/layoutGameContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:paddingHorizontal="3dp"
+            android:paddingVertical="3dp">
+
+          <!-- ★ 对弈子菜单（与棋谱 layoutQipuSub/layoutQipuImports 完全对称，置于滚动区内顶部的两行，
+               总高恒定 → 切页签菜单顶部纹丝不动、绝不窜动）：
+               第1行：新对局 | 红方 | 黑方 | 人话 | 分析；
+               第2行：翻转 | 信息 | 挑战 | 摆子 | 解惑。 -->
+          <LinearLayout
+              android:id="@+id/layoutGameSub"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal"
+              android:gravity="center"
+              android:paddingVertical="2dp"
+              android:visibility="gone">
+
+              <!-- ★ 与棋谱子菜单同款「胶囊」：只换底形状，行高/行宽/权重/定位分毫不动 -->
+              <!-- ★ 新对局：原常驻快捷栏首位，前移至红方/黑方之前 -->
+              <Button android:id="@+id/btnNewGame"
+                  style="@style/PremiumButton"
+                  android:layout_width="0dp" android:layout_height="34dp"
+                  android:layout_weight="1" android:layout_marginEnd="2dp"
+                  android:minWidth="0dp" android:padding="0dp"
+                  android:background="@drawable/bg_pill_button"
+                  android:text="新对局" android:textSize="12sp" />
+
+              <Button android:id="@+id/btnRedSide"
+                  style="@style/PremiumButton"
+                  android:layout_width="0dp" android:layout_height="34dp"
+                  android:layout_weight="1" android:layout_marginEnd="2dp"
+                  android:minWidth="0dp" android:padding="0dp"
+                  android:background="@drawable/bg_pill_button"
+                  android:text="红方:人脑" android:textSize="12sp" />
+
+              <Button android:id="@+id/btnBlackSide"
+                  style="@style/PremiumButton"
+                  android:layout_width="0dp" android:layout_height="34dp"
+                  android:layout_weight="1" android:layout_marginEnd="2dp"
+                  android:minWidth="0dp" android:padding="0dp"
+                  android:background="@drawable/bg_pill_button"
+                  android:text="黑方:AI" android:textSize="12sp" />
+
+              <Button android:id="@+id/btnCommentaryStyle"
+                  style="@style/PremiumButton"
+                  android:layout_width="0dp" android:layout_height="34dp"
+                  android:layout_weight="1" android:layout_marginEnd="2dp"
+                  android:minWidth="0dp" android:padding="0dp"
+                  android:background="@drawable/bg_pill_button"
+                  android:text="人话" android:textSize="12sp" />
+
+              <!-- ★ 分析：原常驻底栏上移至此（人话/现世报 旁），铺满一排 -->
+              <Button android:id="@+id/btnQipuCommentary"
+                  style="@style/PremiumButton"
+                  android:layout_width="0dp" android:layout_height="34dp"
+                  android:layout_weight="1"
+                  android:minWidth="0dp" android:padding="0dp"
+                  android:background="@drawable/bg_pill_button"
+                  android:text="分析:关" android:textSize="12sp"
+                  android:contentDescription="分析开关" />
+          </LinearLayout><!-- /对弈子菜单第1行 -->
+
+          <LinearLayout
+              android:id="@+id/layoutGameSubRow2"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal"
+              android:gravity="center"
+              android:paddingVertical="2dp"
+              android:layout_marginTop="2dp"
+              android:visibility="gone">
+
+              <Button android:id="@+id/btnFlip"
+                  style="@style/PremiumButton"
+                  android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                  android:layout_marginEnd="2dp" android:padding="0dp"
+                  android:background="@drawable/bg_pill_button"
+                  android:text="翻转" android:textSize="12sp" />
+
+              <!-- ★ 恒定菜单栏「信息」按钮：点开看本局来龙去脉（红黑双方/胜负/时间/阶段） -->
+              <Button android:id="@+id/btnGameInfo"
+                  style="@style/PremiumButton"
+                  android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                  android:layout_marginEnd="2dp" android:padding="0dp"
+                  android:background="@drawable/bg_pill_button"
+                  android:text="信息" android:textSize="12sp" />
+
+              <!-- ★ 挑战：选择引擎等级与人持红/黑，与引擎对战（独立进程，只走棋不解说） -->
+              <Button android:id="@+id/btnChallenge"
+                  style="@style/PremiumButton"
+                  android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                  android:layout_marginEnd="2dp" android:padding="0dp"
+                  android:background="@drawable/bg_pill_button"
+                  android:text="挑战" android:textSize="12sp"
+                  android:backgroundTint="@color/btn_primary" />
+
+              <Button android:id="@+id/btnSetupMode"
+                  style="@style/PremiumButton"
+                  android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                  android:layout_marginEnd="2dp" android:padding="0dp"
+                  android:background="@drawable/bg_pill_button"
+                  android:text="摆子" android:textSize="12sp" />
+
+              <Button android:id="@+id/btnAnalyze"
+                  style="@style/PremiumButton"
+                  android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                  android:padding="0dp"
+                  android:background="@drawable/bg_pill_button"
+                  android:text="解惑:关" android:textSize="12sp" />
+          </LinearLayout><!-- /对弈子菜单第2行 -->
+
+          <!-- ★ 页面①（占位保留，逻辑已并入上方子菜单行） -->
+          <LinearLayout
+              android:id="@+id/layoutGamePage1"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:orientation="vertical">
+
+          </LinearLayout><!-- /页面① -->
+
+          <!-- ★ AI解说区：固定高度、区内独立滚动——
+               红方/黑方/人话/分析 那排按钮纹丝不动（在头部的固定行），只有说的字在里面滚。
+               点一下收起，再点一下展开（收起/展开由代码维护）。 -->
+          <TextView
+              android:id="@+id/tvCommentaryBanner"
+              android:layout_width="match_parent"
+              android:layout_height="90dp"
+              android:layout_marginHorizontal="2dp"
+              android:layout_marginTop="3dp"
+              android:gravity="top|start"
+              android:paddingHorizontal="10dp"
+              android:paddingVertical="7dp"
+              android:text="◇ 解说区已就位：走一步，皮卡鱼说一句（点此收起）。"
+              android:textColor="@color/status_bar_text"
+              android:textSize="14sp"
+              android:lineSpacingExtra="3dp"
+              android:scrollbars="vertical"
+              android:background="@drawable/bg_commentary_banner"
+              android:clickable="true"
+              android:focusable="true" />
+
+        </LinearLayout>
+
+        <!-- ── 棋谱面板 ── -->
+        <LinearLayout
+            android:id="@+id/layoutNotationContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="3dp">
+
+            <!-- ★ 棋谱面板（已合并 棋谱① + 棋谱②，无需翻页）。
+                 上排：宝库 · 阅读印象 · 旁白表 · 背谱（均匀分布）
+                 下排：上一则 · 导出 · 导入 · 下一则（均匀分布） -->
+
+            <!-- 上排：工具入口，四个均分 -->
+            <LinearLayout
+                android:id="@+id/layoutQipuSub"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="2dp"
+                android:backgroundTint="@color/tab_bar_bg">
+
+                <Button android:id="@+id/btnQipuVault"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="1" android:layout_marginEnd="2dp"
+                    android:minWidth="0dp"
+                    android:background="@drawable/bg_pill_button"
+                    android:text="宝库" android:textSize="15sp" />
+
+                <Button android:id="@+id/btnQipuImpression"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="1" android:layout_marginEnd="2dp"
+                    android:minWidth="0dp"
+                    android:background="@drawable/bg_pill_button"
+                    android:text="阅读印象" android:textSize="15sp" />
+
+                <Button android:id="@+id/btnQipuCommentaryList"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="1" android:layout_marginEnd="2dp"
+                    android:minWidth="0dp"
+                    android:background="@drawable/bg_pill_button"
+                    android:text="旁白表" android:textSize="15sp" />
+
+                <Button android:id="@+id/btnBookMemorize"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="1"
+                    android:minWidth="0dp"
+                    android:background="@drawable/bg_pill_button"
+                    android:text="背谱" android:textSize="15sp" />
+            </LinearLayout>
+
+            <!-- 下排：导出 · 导入（上一则/下一则已移至底部常驻导航行） -->
+            <LinearLayout
+                android:id="@+id/layoutQipuImports"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginTop="2dp"
+                android:paddingVertical="2dp">
+
+                <Button android:id="@+id/btnExportPgn"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="1" android:layout_marginEnd="2dp"
+                    android:minWidth="0dp"
+                    android:background="@drawable/bg_pill_button"
+                    android:text="导出" android:textSize="15sp" />
+
+                <!-- ★ 复盘评估：夹在 导出 与 导入 之间（同排，不额外增加行数） -->
+                <Button android:id="@+id/btnReview"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="1" android:layout_marginEnd="2dp"
+                    android:minWidth="0dp"
+                    android:background="@drawable/bg_pill_button"
+                    android:text="复盘" android:textSize="15sp" />
+
+                <!-- ★ 练开局：仿挑战模式，限定回合数开局练习，仿复盘入口 -->
+                <Button android:id="@+id/btnPracticeOpening"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="1" android:layout_marginEnd="2dp"
+                    android:minWidth="0dp"
+                    android:background="@drawable/bg_pill_button"
+                    android:text="练开局" android:textSize="15sp" />
+
+                <Button android:id="@+id/btnImportPgn"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="1"
+                    android:minWidth="0dp"
+                    android:background="@drawable/bg_pill_button"
+                    android:text="导入" android:textSize="15sp" />
+
+            </LinearLayout>
+
+            <!-- ★ 练开局控制条：进入练开局后显示（状态 · 悔棋 · 可复盘/未结束 · 退出） -->
+            <LinearLayout
+                android:id="@+id/layoutPracticeBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:visibility="gone"
+                android:paddingVertical="2dp">
+
+                <TextView android:id="@+id/tvPracticeStatus"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="1.3" android:layout_marginEnd="3dp"
+                    android:gravity="center"
+                    android:text="练开局"
+                    android:textSize="13sp"
+                    android:textColor="#FF6E6E"
+                    android:maxLines="1" />
+
+                <Button android:id="@+id/btnPracticeUndo"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="1" android:layout_marginEnd="3dp"
+                    android:minWidth="0dp"
+                    android:text="悔棋" android:textSize="14sp" />
+
+                <Button android:id="@+id/btnPracticeReview"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="1" android:layout_marginEnd="3dp"
+                    android:minWidth="0dp"
+                    android:text="可复盘" android:textSize="14sp" />
+
+                <Button android:id="@+id/btnPracticeExit"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp"
+                    android:layout_weight="1"
+                    android:minWidth="0dp"
+                    android:text="退出" android:textSize="14sp" />
+            </LinearLayout>
+
+            <!-- 隐藏旧按钮：保留 id 供代码 findViewById，功能已并入上方按钮 -->
+            <Button android:id="@+id/btnExportFen"
+                style="@style/PremiumButton"
+                android:layout_width="0dp" android:layout_height="23dp"
+                android:layout_weight="1" android:visibility="gone"
+                android:text="导出FEN" />
+
+            <Button android:id="@+id/btnExportTxt"
+                style="@style/PremiumButton"
+                android:layout_width="0dp" android:layout_height="23dp"
+                android:layout_weight="1" android:layout_marginStart="2dp"
+                android:visibility="gone"
+                android:text="导出TXT" />
+
+            <Button android:id="@+id/btnImportFen"
+                style="@style/PremiumButton"
+                android:layout_width="0dp" android:layout_height="23dp"
+                android:layout_weight="1" android:visibility="gone"
+                android:text="导入FEN" />
+
+            <Button android:id="@+id/btnImportTxt"
+                style="@style/PremiumButton"
+                android:layout_width="0dp" android:layout_height="23dp"
+                android:layout_weight="1" android:layout_marginStart="2dp"
+                android:visibility="gone"
+                android:text="导入TXT" />
+
+            <!-- 棋谱列表按钮（隐藏，保留逻辑） -->
+            <Button android:id="@+id/btnGameRecords"
+                style="@style/PremiumButton"
+                android:layout_width="match_parent" android:layout_height="32dp"
+                android:visibility="gone"
+                android:text="棋谱列表" />
+
+        </LinearLayout>
+
+        <!-- ── 视觉面板（两排）── -->
+        <LinearLayout
+            android:id="@+id/layoutVisualContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:paddingHorizontal="3dp"
+            android:paddingVertical="3dp">
+
+            <!-- 第1排A：讲解/棋盘/棋子/大而美 —— 4个等宽表格格 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="2dp">
+
+                <Button android:id="@+id/btnOverlayCommentary"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                    android:layout_marginEnd="3dp"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="3dp"
+                    android:text="讲解:关"
+                    android:textSize="13sp" />
+
+                <!-- ★ 棋盘大小：点击弹单根横屏滑条（平时只占一个按钮位；划动所见即所得，确认后收起） -->
+                <Button android:id="@+id/btnBoardScale"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                    android:layout_marginEnd="3dp"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="3dp"
+                    android:text="棋盘"
+                    android:textSize="13sp"
+                    android:contentDescription="棋盘大小（点开横屏滑条弹窗）" />
+
+                <!-- ★ 棋子大小：点击弹单根横屏滑条（平时只占一个按钮位；划动所见即所得，确认后收起） -->
+                <Button android:id="@+id/btnPieceScale"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                    android:layout_marginEnd="3dp"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="3dp"
+                    android:text="棋子"
+                    android:textSize="13sp"
+                    android:contentDescription="棋子大小（点开横屏滑条弹窗）" />
+
+                <!-- ★ 棋桌：棋盘纸下的衬台，只选风格、固定比例随棋盘缩放（棋盘→棋子→棋桌） -->
+                <Button android:id="@+id/btnTableStyle"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                    android:layout_marginEnd="3dp"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="3dp"
+                    android:text="棋桌"
+                    android:textSize="13sp"
+                    android:contentDescription="棋桌风格（点开选择衬台样式）" />
+
+                <!-- ★★★ 大而美：一键把棋盘棋子调到「最大且不爆屏」——
+                     按当前棋子尺寸倒推 9列/10行 + 两侧圆半径 的总跨度，取屏幕能放下的最大值；
+                     同时把棋盘区边界锁定，点「显/隐」棋盘大小永远不变，底栏纹丝不动。 -->
+                <Button android:id="@+id/btnDaMei"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="3dp"
+                    android:text="大而美"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:backgroundTint="@color/btn_primary"
+                    android:contentDescription="大而美：棋盘棋子最大化且不爆屏，显/隐切换大小不变" />
+            </LinearLayout>
+
+            <!-- 第1排B：皮肤 / 全局底色 / 个性化 / 棋布
+                 ★ 全局底色（4字）、个性化（3字）文字永远不变，做成「紧凑胶囊」只占够用宽度；
+                   省下的横向空间全部让给「皮肤:璀璨黄金」（4字全显）与「棋布:羊皮纸」。
+                   两枚紧凑钮的圆弧半径也在运行时收小（bg_pill_button_tight），不显得那么椭。 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="2dp">
+
+                <Button android:id="@+id/btnPieceSkin"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                    android:layout_marginEnd="3dp"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="2dp"
+                    android:text="皮肤:默认"
+                    android:textSize="13sp" />
+
+                <!-- ★ 全局底色：点击弹出色谱调色板，自由点选任意颜色；作用于思考区/挑战/背谱/解惑/主界面文字衬托 -->
+                <Button android:id="@+id/btnGlobalBackdrop"
+                     style="@style/PremiumButton"
+                     android:layout_width="wrap_content" android:layout_height="34dp"
+                     android:text="全局底色" android:textSize="13sp"
+                     android:layout_marginEnd="3dp"
+                     android:minWidth="0dp"
+                     android:paddingHorizontal="6dp"
+                     android:contentDescription="全局托底色（点击摊开约50个颜色/纹理，选中即生效关闭）" />
+
+                <!-- ★ 个性化：导入外置ZIP皮肤包，可自由混配红/黑棋子和棋盘底色衬体 -->
+                <Button android:id="@+id/btnPersonalize"
+                     style="@style/PremiumButton"
+                     android:layout_width="wrap_content" android:layout_height="34dp"
+                     android:text="个性化" android:textSize="13sp"
+                     android:layout_marginEnd="3dp"
+                     android:minWidth="0dp"
+                     android:paddingHorizontal="5dp"
+                     android:contentDescription="导入ZIP皮肤包（棋子+背景），可跨包混选红方与黑方棋子" />
+
+                <!-- ★ 棋布：原「背景」。指的就是棋桌盘面那张耐用布料的样式（羊皮纸/大理石/暖灰等），
+                     改叫「棋布」一听就懂——切换的是棋盘纸的布料样子，不再与广义"背景"混淆。 -->
+                <Button android:id="@+id/btnBgSwitch"
+                     style="@style/PremiumButton"
+                     android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                     android:text="棋布" android:textSize="13sp"
+                     android:minWidth="0dp"
+                     android:paddingHorizontal="2dp"
+                     android:contentDescription="棋布（切换棋盘布料样式）" />
+            </LinearLayout>
+
+            <!-- 第2排：棋线颜色 + 棋线粗细 + 菜单底色 + 菜单按钮 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:paddingVertical="2dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginEnd="2dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:text="线色"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:gravity="center_vertical"
+                        android:layout_marginEnd="2dp" />
+
+                    <Spinner
+                        android:id="@+id/spinnerLineColor"
+                        android:layout_width="0dp"
+                        android:layout_height="30dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/edittext_dark_bg"
+                        android:padding="2dp"
+                        android:popupBackground="#2B2115" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginEnd="2dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:text="线粗"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:gravity="center_vertical"
+                        android:layout_marginEnd="2dp" />
+
+                    <Spinner
+                        android:id="@+id/spinnerLineThickness"
+                        android:layout_width="0dp"
+                        android:layout_height="30dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/edittext_dark_bg"
+                        android:padding="2dp"
+                        android:popupBackground="#2B2115" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginEnd="2dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:text="菜单底"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:gravity="center_vertical"
+                        android:layout_marginEnd="2dp" />
+
+                    <Spinner
+                        android:id="@+id/spinnerMenuBgColor"
+                        android:layout_width="0dp"
+                        android:layout_height="30dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/edittext_dark_bg"
+                        android:padding="2dp"
+                        android:popupBackground="#2B2115" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:text="菜单钮"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:gravity="center_vertical"
+                        android:layout_marginEnd="2dp" />
+
+                    <Spinner
+                        android:id="@+id/spinnerMenuBtnColor"
+                        android:layout_width="0dp"
+                        android:layout_height="30dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/edittext_dark_bg"
+                        android:padding="2dp"
+                        android:popupBackground="#2B2115" />
+                </LinearLayout>
+            </LinearLayout><!-- /第2排 -->
+
+            <!-- ★ 第3排：解说字号 + 点动字号 —— 两档滑杆，独立可调 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="2dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginEnd="4dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:layout_marginEnd="3dp"
+                        android:text="解说字"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:gravity="center_vertical" />
+
+                    <TextView
+                        android:id="@+id/tvCommentFontVal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:layout_marginEnd="2dp"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp"
+                        android:gravity="center_vertical" />
+
+                    <SeekBar
+                        android:id="@+id/sbCommentFont"
+                        android:layout_width="0dp"
+                        android:layout_height="34dp"
+                        android:layout_weight="1"
+                        android:max="32"
+                        android:progress="14"
+                        android:paddingVertical="4dp"
+                        android:background="@null" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:layout_marginEnd="3dp"
+                        android:text="点动字"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:gravity="center_vertical" />
+
+                    <TextView
+                        android:id="@+id/tvTapFontVal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:layout_marginEnd="2dp"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp"
+                        android:gravity="center_vertical" />
+
+                    <SeekBar
+                        android:id="@+id/sbTapFont"
+                        android:layout_width="0dp"
+                        android:layout_height="34dp"
+                        android:layout_weight="1"
+                        android:max="120"
+                        android:progress="40"
+                        android:paddingVertical="4dp"
+                        android:background="@null" />
+                </LinearLayout>
+            </LinearLayout><!-- /第3排 解说字/点动字 -->
+        </LinearLayout><!-- /视觉① layoutVisualContent -->
+
+        <!-- ── 视觉② = 坐标微调子界面：点主菜单「视觉」第二次切入 ── -->
+        <LinearLayout
+            android:id="@+id/layoutVisualContent2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:paddingHorizontal="3dp"
+            android:paddingVertical="3dp">
+
+            <!-- ★ 坐标微调 + 引擎：棋盘↕ / 菜单栏↕ / 外置引擎 / 引擎列表——
+             四枚按钮等宽（各占 1/4），一排分匀，不挤不吞字；按钮文字自说明。 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:paddingVertical="1dp">
+
+                <Button
+                    android:id="@+id/btnBoardCoord"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="3dp"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="2dp"
+                    android:text="棋盘↕"
+                    android:textSize="12sp"
+                    android:contentDescription="棋盘坐标：整盘棋子上下微调（弹透明浮条）" />
+
+                <Button
+                    android:id="@+id/btnMenuCoord"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="3dp"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="2dp"
+                    android:text="菜单栏↕"
+                    android:textSize="12sp"
+                    android:contentDescription="组件坐标：底部菜单栏上下微调（弹透明浮条）" />
+
+                <!-- ★ 外置引擎：选一个 ZIP（内含引擎二进制＋NNUE 权重）装载，全局替换内置皮卡鱼；
+                     长按可卸回内置默认。四枚按钮各占 1/4。 -->
+                <Button
+                    android:id="@+id/btnExternalEngine"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="3dp"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="2dp"
+                    android:text="外置引擎"
+                    android:textSize="12sp"
+                    android:contentDescription="外置引擎：选一个引擎 ZIP 装载，全局替换内置引擎（长按卸回内置）" />
+
+                <!-- ★ 引擎列表：总览全部引擎（内置默认＋已装外置），可「采用」全局生效、
+                     或勾红/黑两台做引擎 PK 测试；并展示彼此交手成绩。 -->
+                <Button
+                    android:id="@+id/btnEngineList"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="2dp"
+                    android:text="引擎列表"
+                    android:textSize="12sp"
+                    android:contentDescription="引擎列表：查看全部引擎、采用其一全局生效、或勾红黑两台做引擎 PK 测试" />
+            </LinearLayout><!-- /坐标行（四枚等宽胶囊单行分匀） -->
+        </LinearLayout><!-- /视觉② layoutVisualContent2 -->
+
+        <!-- ── 更多面板 ── -->
+        <LinearLayout
+            android:id="@+id/layoutMoreContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="3dp">
+
+            <!-- 第1排：作者寄语/进群反馈/其他作品 —— 3个，宽裕不吞字 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:paddingTop="2dp">
+
+                <Button android:id="@+id/btnAuthorIntent"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                    android:layout_marginEnd="3dp"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="3dp"
+                    android:text="🔊 作者寄语"
+                    android:textSize="13sp"
+                    android:backgroundTint="@color/btn_neutral" />
+
+                <!-- 进群反馈：跳转QQ官方群 -->
+                <Button android:id="@+id/btnJoinGroup"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                    android:layout_marginEnd="3dp"
+                    android:text="💬 进群反馈"
+                    android:textSize="13sp"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="3dp"
+                    android:backgroundTint="@color/btn_neutral" />
+
+                <!-- 其他作品：气泡提示后跳转下载 -->
+                <Button android:id="@+id/btnOtherWorks"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                    android:text="🎮 其他作品"
+                    android:textSize="13sp"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="3dp"
+                    android:backgroundTint="@color/btn_neutral" />
+            </LinearLayout>
+
+            <!-- 第2排：背景音 / 清新人生 / 外置读物 —— 3个，各占 1/3，均分不挤 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:paddingTop="2dp">
+
+                <!-- 背景音：选择背景音乐 + 调节音效音量 -->
+                <Button android:id="@+id/btnBgm"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                    android:layout_marginEnd="3dp"
+                    android:text="🎵 背景音"
+                    android:textSize="13sp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="2dp"
+                    android:backgroundTint="@color/btn_neutral" />
+
+                <!-- ★ 清新人生：《清新人生手册》全屏阅读器 -->
+                <Button android:id="@+id/btnFreshLife"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                    android:layout_marginEnd="3dp"
+                    android:text="🌿 清新人生"
+                    android:textSize="13sp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="2dp"
+                    android:backgroundTint="@color/btn_primary" />
+
+                <!-- ★ 外置读物：PDF 书架 —— 导入/点书名即读/删除/清空；阅读器带目录、进度记忆、标记、缩放 -->
+                <Button android:id="@+id/btnExternalReader"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                    android:text="📚 外置读物"
+                    android:textSize="13sp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="2dp"
+                    android:backgroundTint="@color/btn_neutral" />
+            </LinearLayout>
+
+            <!-- ★ 辎重包入口：接入/共享辎重包（操作包与辎重包分离、跨设备直读的统一控制台） -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:paddingTop="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"><Button android:id="@+id/btnHeavyPack"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+                    android:text="📦 辎重包"
+                    android:textSize="13sp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="2dp"
+                    android:backgroundTint="@color/btn_primary" />
+                <Button android:id="@+id/btnMatchRecommend"
+                    style="@style/PremiumButton"
+                    android:layout_width="0dp" android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:layout_height="34dp"
+                    android:text="📖 匹配推荐"
+                    android:textSize="13sp"
+                    android:backgroundTint="@color/btn_primary" />
+            </LinearLayout>
+            </LinearLayout>
+
+            <!-- ★ 宣传小视频已按要求移除（原 96dp 占位），更多面板更紧凑。 -->
+        </LinearLayout><!-- /更多面板 -->
+
+            </LinearLayout><!-- /页签内容管 -->
+        </ScrollView>
+        </LinearLayout><!-- /组件A -->
+
+        <!-- ── 组件 B：播放栏 —— 硬组件另一套（原快捷栏整行已并入对弈子菜单，空气挤出） ── -->
+        <LinearLayout
+            android:id="@+id/layoutGroupB"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+        <!-- ★ 常驻播放控制底栏：任何菜单切换/翻页都不变。
+             顺序（左→右）：上一步 | 播放 | 倍率 | 开局 | (步数) | 末尾 | 背景 | 分析开关 | 下一步
+             上一步在最左、下一步在最右，双手端屏按最不易误触；开局/末尾挤在中间便于跳转。 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingVertical="1dp"
+            android:background="@color/tab_bar_bg">
+
+            <Button android:id="@+id/btnGuessMove"
+                style="@style/PremiumButton"
+                android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+                android:layout_marginEnd="2dp" android:padding="0dp"
+                android:text="播放" android:textSize="13sp" android:textStyle="bold"
+                android:contentDescription="播放/暂停" />
+
+            <Button android:id="@+id/btnPlaySpeed"
+                style="@style/PremiumButton"
+                android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+                android:layout_marginEnd="2dp" android:padding="0dp"
+                android:text="1x" android:textSize="13sp"
+                android:contentDescription="播放倍率" />
+
+            <Button android:id="@+id/btnGoStart"
+                style="@style/PremiumButton"
+                android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+                android:layout_marginEnd="2dp" android:padding="0dp"
+                android:text="|◀" android:textSize="14sp"
+                android:contentDescription="回到开局" />
+
+            <TextView android:id="@+id/tvStepInfo"
+                android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+                android:layout_marginEnd="2dp"
+                android:gravity="center" android:text="0/0"
+                android:textColor="@color/status_bar_text" android:textSize="13sp"
+                android:textStyle="bold" android:paddingHorizontal="2dp" android:minWidth="0dp"
+                android:background="@drawable/edittext_dark_bg"
+                android:contentDescription="当前步数" />
+
+            <Button android:id="@+id/btnGoEnd"
+                style="@style/PremiumButton"
+                android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+                android:layout_marginEnd="2dp" android:padding="0dp"
+                android:text="▶|" android:textSize="14sp"
+                android:contentDescription="到最后一步" />
+        </LinearLayout><!-- /播放栏 -->
+        </LinearLayout><!-- /组件B -->
+
+    </LinearLayout><!-- /主菜单layoutNormalControls -->
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!--  解说/思考细节/棋谱 显示区贴纸（浮在底部、主菜单上方） -->
+    <!--  ★ 悬浮贴纸：固定高度浮在棋盘上，不再与棋盘争夺布局空间；
+           点「隐」后贴纸随菜单收拢下移贴住底栏，棋盘几乎全露 -->
+    <!-- ══════════════════════════════════════════════ -->
+    <FrameLayout
+        android:id="@+id/frameSetupThumb"
+        android:layout_width="match_parent"
+        android:layout_height="190dp"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="280dp"
+        android:elevation="8dp"
+        android:paddingBottom="2dp">
+
+        <!-- ★ 区域分界线：显示区(解说/思考细节/棋谱/宣传视频)的顶界，
+             醒目横线从棋盘/菜单下方划开，内容只在界线下铺开 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_gravity="top"
+            android:background="#D9B45C" />
+
+        <!-- ★ 原图缩略图（小图）：长按/拖动上划逐步放大占半屏，点击切换，放大后点右上收缩键返回 -->
+        <ImageView
+            android:id="@+id/imgSetupThumb"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="6dp"
+            android:contentDescription="识别原图缩略图"
+            android:scaleType="centerCrop"
+            android:adjustViewBounds="true"
+            android:background="@drawable/setup_thumb_bg"
+            android:padding="2dp"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <!-- ★ 四点圈定覆盖层：放大态叠加在原图上，点4角圈定识别范围 -->
+        <com.pikafish.chess.SetupCropOverlay
+            android:id="@+id/setupCropOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:contentDescription="四点圈定识别范围" />
+
+        <!-- ★ 圈定模式开关（放大态显示）：点击进入/退出圈定+刷子工具面板 -->
+        <Button
+            android:id="@+id/btnSetupCrop"
+            style="@style/PremiumButton"
+            android:layout_width="46dp"
+            android:layout_height="34dp"
+            android:text="✏️工具"
+            android:textSize="11sp"
+            android:layout_gravity="top|start"
+            android:layout_margin="6dp"
+            android:padding="0dp"
+            android:visibility="gone"
+            android:contentDescription="圈定/刷子工具" />
+
+        <!-- ★ 收缩键：放大态时显示，点击把图片缩回右下角小图（整个区域收起） -->
+        <Button
+            android:id="@+id/btnSetupThumbShrink"
+            style="@style/PremiumButton"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:text="↗↙"
+            android:textSize="15sp"
+            android:layout_gravity="top|end"
+            android:layout_margin="6dp"
+            android:padding="0dp"
+            android:visibility="gone"
+            android:contentDescription="缩回原图" />
+
+        <!-- ★ 圈定工具条（放大态出现）：左侧竖排，圈点、清除、识别提交 -->
+        <LinearLayout
+            android:id="@+id/layoutSetupTools"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:layout_gravity="top|start"
+            android:background="@color/panel_bg"
+            android:padding="4dp"
+            android:layout_marginStart="6dp"
+            android:layout_marginTop="44dp"
+            android:visibility="gone">
+
+            <Button
+                android:id="@+id/btnCropCrown"
+                style="@style/PremiumButton"
+                android:layout_width="62dp"
+                android:layout_height="34dp"
+                android:text="🔺圈点"
+                android:textSize="11sp"
+                android:padding="0dp"
+                android:layout_marginBottom="3dp" />
+
+            <Button
+                android:id="@+id/btnCropClear"
+                style="@style/PremiumButton"
+                android:layout_width="62dp"
+                android:layout_height="34dp"
+                android:text="🗑清除"
+                android:textSize="11sp"
+                android:padding="0dp"
+                android:layout_marginBottom="3dp" />
+
+            <Button
+                android:id="@+id/btnSetupResubmit"
+                style="@style/PremiumButton"
+                android:layout_width="62dp"
+                android:layout_height="36dp"
+                android:text="识别提交"
+                android:textSize="12sp"
+                android:padding="0dp" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!--  常驻方向导航小行贴纸（脱离菜单、永远显示、贴屏幕最底） -->
+    <!--  ★ 悬浮贴纸：浮在屏幕最底，主菜单贴纸浮在它上方 -->
+    <!--  ★ 不在菜单里，点隐/显与菜单互不干扰；常驻在系统导航键上方。 -->
+    <!--  顺序：上一步(◀图标) | 上一则(汉字) | [隐/显圆圈] | 下一则(汉字) | 下一步(▶图标) -->
+    <!-- ══════════════════════════════════════════════ -->
+    <LinearLayout
+        android:id="@+id/layoutBottomNav"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingVertical="1dp"
+        android:background="@color/board_bg"
+        android:elevation="12dp">
+
+        <!-- ★ 胶囊钮：只换底形状为胶囊，28dp 行高与两角定位点不动，面积不越界 -->
+        <Button android:id="@+id/btnGoBack"
+            style="@style/PremiumButton"
+            android:layout_width="0dp" android:layout_height="28dp" android:layout_weight="1"
+            android:layout_marginEnd="1dp"
+            android:background="@drawable/bg_pill_button"
+            android:text="◀" android:textSize="16sp" android:padding="0dp"
+            android:contentDescription="上一步" />
+
+        <Button android:id="@+id/btnQipuPrev"
+            style="@style/PremiumButton"
+            android:layout_width="0dp" android:layout_height="28dp" android:layout_weight="1"
+            android:layout_marginEnd="1dp"
+            android:background="@drawable/bg_pill_button"
+            android:text="上一则" android:textSize="13sp" android:padding="0dp"
+            android:contentDescription="上一则" />
+
+        <!-- ★ 标本局印象：给当前正读的这局直接打上阅读程度/印象/备注/书签 -->
+        <Button android:id="@+id/btnTagCurrent"
+            style="@style/PremiumButton"
+            android:layout_width="0dp" android:layout_height="28dp" android:layout_weight="1"
+            android:layout_marginEnd="1dp"
+            android:background="@drawable/bg_pill_button"
+            android:text="▣标" android:textSize="13sp" android:padding="0dp"
+            android:contentDescription="标本局印象" />
+
+        <!-- ★ 隐/显 圆圈：点一下收拢主菜单（眼不见为净），再点一下全部弹开 -->
+        <Button android:id="@+id/btnToggleMenu"
+            style="@style/PremiumButton"
+            android:layout_width="34dp" android:layout_height="28dp"
+            android:layout_marginHorizontal="2dp"
+            android:background="@drawable/bg_circle_toggle"
+            android:text="隐" android:textSize="12sp" android:textColor="#FFFFFF"
+            android:padding="0dp" android:stateListAnimator="@null"
+            android:contentDescription="隐/显菜单" />
+
+        <Button android:id="@+id/btnQipuNext"
+            style="@style/PremiumButton"
+            android:layout_width="0dp" android:layout_height="28dp" android:layout_weight="1"
+            android:layout_marginStart="1dp"
+            android:background="@drawable/bg_pill_button"
+            android:text="下一则" android:textSize="13sp" android:padding="0dp"
+            android:contentDescription="下一则" />
+
+        <Button android:id="@+id/btnGoForward"
+            style="@style/PremiumButton"
+            android:layout_width="0dp" android:layout_height="28dp" android:layout_weight="1"
+            android:layout_marginStart="1dp"
+            android:background="@drawable/bg_pill_button"
+            android:text="▶" android:textSize="16sp" android:padding="0dp"
+            android:contentDescription="下一步" />
+    </LinearLayout>
+
+</FrameLayout>

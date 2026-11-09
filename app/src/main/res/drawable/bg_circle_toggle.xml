@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ★ 「隐/显」圆圈：古金渐变 + 白描边，一体成型的高级。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <gradient
+        android:angle="270"
+        android:startColor="#E0BD5E"
+        android:centerColor="#C89B2C"
+        android:endColor="#A87F1D" />
+    <stroke
+        android:width="1dp"
+        android:color="#FFF6E6" />
+</shape>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ★ 更多组 大胶囊（围养圈）：淡檀藕米纸，微投影 + 细描边，圆角大圈。
+     与参数(暖金)/视觉(青瓷)纸张色区分 —— 三群各见一套底纸，一眼可辨倾向不同。 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:left="1dp" android:top="1dp" android:right="1dp" android:bottom="3dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="90"
+                android:startColor="#2E1A150F"
+                android:centerColor="#1515100A"
+                android:endColor="#00000000" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <item android:left="0dp" android:top="0dp" android:right="0dp" android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#FFF4E8DF"
+                android:centerColor="#FFF0E2D4"
+                android:endColor="#FFECDDCB" />
+            <stroke android:width="1dp" android:color="#D9CBAD8C" />
+            <corners android:radius="15dp" />
+        </shape>
+    </item>
+</layer-list>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ★ 设置纸张弹窗衬底：暖米纸 + 金光照拂。
+     不再是一张纯白硬纸，而是微微泛着暖米的软纸——上往下渐亮、描金边，
+     一眼就是"被柔和灯光照着的高级纸张"，与棋盘木色/金色按钮浑然一体。
+     表面不透明（不蒙不遮），只在视觉上更温润高级。
+     ★ 不使用任何叠在内容面上的高光色块层，保证文字/按钮 100% 清晰不发虚。 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 底层：纸张厚度投影（暗影略下移，浮层感） -->
+    <item android:left="1dp" android:top="1dp" android:right="1dp" android:bottom="4dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="90"
+                android:startColor="#3D1B1205"
+                android:centerColor="#24100A03"
+                android:endColor="#00000000" />
+            <corners android:radius="18dp" />
+        </shape>
+    </item>
+    <!-- 面层：暖米纸渐变（上略暖一档→下更米白，光照质感） + 金铜细描边 + 圆角 -->
+    <item android:left="0dp" android:top="0dp" android:right="0dp" android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#FFFDF6E6"
+                android:centerColor="#FFFBF1DC"
+                android:endColor="#FFF7EBCC" />
+            <!-- 细金描边：暖调不扎眼，勾勒出纸张边沿 -->
+            <stroke android:width="1.25dp" android:color="#D9C69A5C" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+</layer-list>

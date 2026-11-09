@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">黄昏象棋</string>
+    <string name="new_game">新对局</string>
+    <string name="undo">悔棋</string>
+    <string name="flip">翻转棋盘</string>
+    <string name="settings">设置</string>
+    <string name="red_turn">红方走棋</string>
+    <string name="black_turn">黑方走棋</string>
+    <string name="red_wins">红方胜!</string>
+    <string name="black_wins">黑方胜!</string>
+    <string name="draw">和棋</string>
+    <string name="thinking">引擎思考中…</string>
+    <string name="engine_depth">搜索深度</string>
+    <string name="engine_threads">线程数</string>
+    <string name="player_red">玩家(红方)</string>
+    <string name="player_black">引擎(黑方)</string>
+    <string name="engine_vs_engine">引擎对战</string>
+    <string name="player_vs_player">双人对弈</string>
+    <string name="link_accessibility_description">用于向已连接的象棋应用发送走子点击。</string>
+</resources>

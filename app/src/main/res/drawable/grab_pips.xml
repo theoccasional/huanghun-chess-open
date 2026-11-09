@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 拖拽抓握手柄：三个居中圆点，提示此处可按住上下拖动 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:width="24dp"
+        android:height="5dp"
+        android:gravity="center">
+        <shape android:shape="rectangle">
+            <corners android:radius="3dp" />
+            <solid android:color="#6A5A42" />
+        </shape>
+    </item>
+</layer-list>

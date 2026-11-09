@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ★ 摆子底座拖拽手柄背景：顶部居中三条抓握格（浅金色），两侧深温底分隔 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <solid android:color="#E7E0C9" />
+                </shape>
+            </item>
+            <item
+                android:top="5dp"
+                android:bottom="5dp"
+                android:gravity="center_horizontal">
+                <shape android:shape="rectangle">
+                    <solid android:color="#8A7A52" />
+                    <corners android:radius="3dp" />
+                </shape>
+                <size
+                    android:width="64dp"
+                    android:height="8dp" />
+            </item>
+        </layer-list>
+    </item>
+</selector>

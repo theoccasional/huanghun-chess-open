@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ══════════════════════════════════════════════════════════
+     ★ 暖金·浅色高级色板（向77象棋的高级感靠齐，浅色低风险进阶版）
+     基调：奶油象牙 + 古金(低饱和抹旧金) + 暖胡桃木棋盘，整体澄明有质感。
+     说明：只改"值"，不改任何颜色【名称】，布局/代码引用全部兼容，零功能风险。
+     ══════════════════════════════════════════════════════════ -->
+<resources>
+    <!-- 主色调：低饱和古金（比原先刺眼的亮橙 #FFB300 更"抹旧"、更高级） -->
+    <color name="primary">#C89B2C</color>
+    <color name="primary_dark">#8F6E1D</color>
+    <color name="primary_light">#EAC96C</color>
+
+    <!-- 棋盘：暖胡桃木，对比分明更润泽（浅格子象牙木 / 深格子陈年胡桃） -->
+    <color name="board_light">#E9C28A</color>
+    <color name="board_dark">#A06A2E</color>
+    <color name="board_bg">#F4E8CE</color>
+
+    <!-- 文字：暖墨棕，比纯黑更亲和高级 -->
+    <color name="text_primary">#3A2E1A</color>
+    <color name="text_secondary">#8A6A3D</color>
+    <color name="text_dark">#2C2215</color>
+
+    <!-- 棋子（不参与改色，保持正红正黑） -->
+    <color name="piece_red">#D42020</color>
+    <color name="piece_black">#1A1A1A</color>
+
+    <!-- 高亮（透明透视，不参与改色） -->
+    <color name="selected_highlight">#44FF4444</color>
+    <color name="last_move_highlight">#44FFB300</color>
+    <color name="legal_move_dot">#44000000</color>
+
+    <!-- Tab按钮：选中=古金，未选=暖杏金 -->
+    <color name="tab_active">#C89B2C</color>
+    <color name="tab_inactive">#E0BE7D</color>
+    <!-- ★ 去纸：页签行的「纸」透明化，按钮一个个直接浮在棋盘上（区域尺寸/排布逻辑分毫不动） -->
+    <color name="tab_bar_bg">@android:color/transparent</color>
+
+    <!-- 面板背景：★ 去纸：面板不再铺底色，按钮后面没有纸（组件区域照旧占位，只是不画底） -->
+    <color name="panel_bg">@android:color/transparent</color>
+    <color name="panel_border">#E4C47A</color>
+
+    <!-- 按钮（暖金高级：古金主操作 / 古铜中性 / 略降饱和的正红正绿） -->
+    <color name="btn_primary">#C89B2C</color>
+    <color name="btn_secondary">#AB8A2B</color>
+    <color name="btn_danger">#C2532E</color>
+    <color name="btn_success">#2F7A44</color>
+    <color name="btn_neutral">#A88A58</color>
+    <color name="btn_neutral_deep">#8A6A3D</color>
+
+    <!-- 状态栏：一条暖梅子色带，与奶油底分明又不跳 -->
+    <color name="status_bar_bg">#EED9AE</color>
+    <color name="status_bar_text">#5A4218</color>
+
+    <!-- 解说区域 -->
+    <color name="commentary_bg">#FFF8E6</color>
+    <color name="commentary_text">#5A4218</color>
+
+    <!-- 拖拽抓握条底色（低存在感，仅提示此处可拖） -->
+    <color name="grab_handle_bg">#E4C47A</color>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ★ AI解说横幅：暖金极淡底 + 古金细发丝，衬托文字，高级不抢戏。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#24C89B2C"
+        android:endColor="#12C89B2C" />
+    <corners android:radius="8dp" />
+    <stroke
+        android:width="1dp"
+        android:color="#40C89B2C" />
+</shape>

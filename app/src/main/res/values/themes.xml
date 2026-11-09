@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.PikafishChess" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="android:windowBackground">@color/board_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+
+    <!-- ★ 沙盒/挑战等全屏界面主题：必须基于 Theme.AppCompat（深色NoActionBar），
+         否则 AppCompatActivity 内创建 AlertDialog 会抛
+         "You need to use a Theme.AppCompat theme" 崩溃（ChallengeActivity 曾因此闪退）。 -->
+    <style name="Theme.ChallengeFullscreen" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/board_bg</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+
+    <!-- ★ 挑战/续盘 弹窗改用"白纸黑字"浅色对话框主题：原来是深色灰纸+灰黑字，看起来费劲。
+         白底黑字清晰简单，又不至于太突兀（暖白纸 + 深墨绿交互色）。 -->
+    <style name="Theme.ChallengeDialogLight" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="android:windowBackground">#FFF9EE</item>
+        <item name="colorAccent">#2E6B4F</item>
+        <item name="colorControlActivated">#2E6B4F</item>
+        <item name="android:textColorPrimary">#2B2118</item>
+        <item name="android:textColorSecondary">#4A3E2E</item>
+    </style>
+
+    <!-- 微思打谱对弈台：非全屏、导航栏实色可见，避免底部控制按钮被系统导航键遮挡/拦截 -->
+    <style name="Theme.PikafishWebPlayer" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/board_bg</item>
+        <item name="android:statusBarColor">#20232B</item>
+        <item name="android:navigationBarColor">#1D242C</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+
+    <!-- 按钮样式：圆角、柔和古铜底（设置类中性按钮）；主操作按钮在各自布局里用 btn_primary 高亮。
+         文字统一白色，保证对比强烈。 -->
+    <style name="PremiumButton" parent="Widget.AppCompat.Button.Colored">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:paddingStart">4dp</item>
+        <item name="android:paddingEnd">4dp</item>
+        <item name="android:minHeight">34dp</item>
+        <item name="android:backgroundTint">@color/btn_neutral</item>
+    </style>
+
+    <!-- Tab按钮样式：文字统一白色 -->
+    <style name="TabButton" parent="Widget.AppCompat.Button.Colored">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:minHeight">34dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+        <item name="android:backgroundTint">@color/tab_inactive</item>
+    </style>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ★「分析浮透」盘心半透明面板：既透出棋盘，又保证文字清晰。
+     深檀半透底 + 细金描边 + 圆角，强调"浮于盘上、看字又不挡棋"。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#B026170C" />
+    <corners android:radius="14dp" />
+    <stroke
+        android:width="1dp"
+        android:color="#73C59B4B" />
+</shape>

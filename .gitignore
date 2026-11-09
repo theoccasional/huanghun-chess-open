@@ -1,0 +1,19 @@
+# ── 构建产物 / 本地环境 ──
+build/
+.gradle/
+local.properties
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+*.apk
+*.aab
+*.ap_
+*.log
+
+# ── 签名材料（严禁入库）──
+*.jks
+*.keystore
+
+# ── 私有识别模型（按 assets/licenses/THIRD_PARTY.md 口径，不随仓库分发）──
+app/src/main/assets/models/

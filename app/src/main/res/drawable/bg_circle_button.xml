@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ★ −/+ 步进按钮纯圆底：oval 圆形 + ripple 按压反馈。
+     backgroundTintList 照旧由全局菜单钮色动态着色（换底不换色）。
+     内容只有一个符号，纯圆比胶囊更周正好看；文字默认居中。 -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#40FFFFFF">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#FFF7F2E6" />
+        </shape>
+    </item>
+</ripple>
