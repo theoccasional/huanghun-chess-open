@@ -1,0 +1,2 @@
+# 二进制/逐字节受保护的文件：禁止 Git 做换行转换，保证哈希在任何平台一致
+app/src/main/assets/manual/qingxin.html -text
