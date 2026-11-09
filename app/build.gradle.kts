@@ -113,6 +113,13 @@ android {
     }
 }
 
+// ★《清新人生手册》完整性：把手册目录登记为测试输入。
+//   否则文件被删改时 Gradle 会把 test 任务判成 UP-TO-DATE 直接跳过，
+//   校验形同虚设。登记后只要手册有任何一个字节变化，测试必然重跑并失败。
+tasks.withType<Test>().configureEach {
+    inputs.dir("src/main/assets/manual").withPropertyName("manualAssets").optional()
+}
+
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
