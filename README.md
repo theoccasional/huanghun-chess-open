@@ -5,6 +5,8 @@ Android 中国象棋客户端。自带引擎与开局库，可单机对弈、打
 
 当前版本：**2.9.308**（`versionCode 344`）
 
+已编译的 APK 可在 [Releases](https://github.com/theoccasional/huanghun-chess-open/releases) 页面下载。
+
 ## 主要能力
 
 - **对弈**：人机、双人、挑战残局；内置皮卡鱼（UCI）与多套开源引擎
