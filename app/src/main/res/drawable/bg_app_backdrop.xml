@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ★ 全局暖金渐变底：整屏奶油→转角略深的暖金，给"整套"棋盘外框一个高级底色。
+     浅色低风险，仅改观感，不碰任何交互。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#F6ECCE"
+        android:centerColor="#F3E4BE"
+        android:endColor="#EBD9AC" />
+</shape>

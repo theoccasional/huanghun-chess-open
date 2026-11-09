@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/dialog_bg">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="粘贴棋谱文字，或从文件选择"
+        android:textColor="#E8D5A3"
+        android:textSize="13sp"
+        android:layout_marginBottom="6dp" />
+
+    <TextView
+        android:id="@+id/tvImportNotice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="提示：本软件不对导入内容做长期保存与进度维护。\n导入即解、解完即走；阅读进度/拆棋进度等请用第三方记事工具另行笔录跟进。\n如需反复打谱，可在本地自建文件夹按目录分门别类，每次导入自取所需。"
+        android:textColor="#9A8F7A"
+        android:textSize="11sp"
+        android:lineSpacingExtra="2dp"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/etImportContent"
+        android:layout_width="match_parent"
+        android:layout_height="160dp"
+        android:hint="在此粘贴棋谱内容…"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#888888"
+        android:textSize="13sp"
+        android:gravity="top|start"
+        android:background="@drawable/edittext_dark_bg"
+        android:padding="8dp"
+        android:inputType="textMultiLine"
+        android:scrollbars="vertical"
+        android:minLines="5"
+        android:maxLines="10" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="8dp">
+
+        <Button
+            android:id="@+id/btnPasteFromClipboard"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:text="粘贴剪贴板"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:backgroundTint="#5C5040" />
+
+        <Button
+            android:id="@+id/btnFromFile"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:text="从文件选择"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:backgroundTint="#5C5040" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="8dp">
+
+        <Button
+            android:id="@+id/btnImportPlay"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:text="导入并打谱"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:backgroundTint="#7A4B2A" />
+
+        <Button
+            android:id="@+id/btnImport"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:text="导入"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:backgroundTint="#5C5040" />
+
+        <Button
+            android:id="@+id/btnCancel"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_weight="1"
+            android:text="取消"
+            android:textColor="#CCCCCC"
+            android:textSize="13sp"
+            android:backgroundTint="#3A332B" />
+    </LinearLayout>
+
+</LinearLayout>

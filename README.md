@@ -1,84 +1,92 @@
-黄昏象棋 · 开放源码仓（Huanghun Chess）
+# 黄昏象棋（Huanghun Chess）
 
-这是一个 Android 中国象棋应用（对弈 / 残局 / 打谱 / 引擎 / 连线识别）的源码仓。
-本仓只放代码，不含模型权重、引擎二进制与图片音频等大件资产（原因见下）。
+Android 中国象棋客户端。自带引擎与开局库，可单机对弈、打谱、批量转换棋谱，
+并支持「跨设备借引擎」——一台手机出借算力，另一台只负责界面与触摸。
 
+当前版本：**2.9.308**（`versionCode 344`）
 
+## 主要能力
 
-许可证：MIT（见 LICENSE）
+- **对弈**：人机、双人、挑战残局；内置皮卡鱼（UCI）与多套开源引擎
+- **开局库**：XQB / OBK / BOOK.DAT / PGN 等格式，可加载外部库
+- **棋谱**：PGN、中文记谱、ICCS、CBL、XQF、ECCO 等的导入导出与批转
+- **连线 / 观战**：识别屏幕与棋盘，移植并整合 YK 连线内核
+- **跨设备借引擎**：发送端出借本机引擎，接收端只传着法，避免发热
+- **棋例判定**：按亚象联《象棋比赛规例》处理长将、长捉、长打与重复局面
 
-这是一个 Android 中国象棋应用（对弈 / 残局 / 打谱 / 引擎 / 连线识别）的源码仓。
+## 目录结构
 
-本仓只放代码，不含模型权重、引擎二进制与图片音频等大件资产（原因见下）。
+```
+app/         主程序（Java / Kotlin + JNI C++，assets 内为引擎、权重与棋库）
+batchtool/   棋谱批转工具模块
+*.gradle.kts 构建脚本
+```
 
-本仓只放代码，不含模型权重、引擎二进制与图片音频等大件资产（原因见下）。
+## 构建
 
+环境：**JDK 17**（JDK 25 会因 AGP 解析失败）、Android SDK（compileSdk 35）、NDK。
 
-许可证：MIT（见 LICENSE）
+1. 在工程根目录创建 `local.properties`，写入你自己的 SDK 路径：
 
-语言：Kotlin / Java
-最低 SDK：24　目标 SDK：见 app/build.gradle.kts
+```properties
+sdk.dir=/path/to/Android/Sdk
+```
 
-构建工具：Gradle 8.x + JDK 17 + Android SDK Platform 34
-一、快速开始六、免责声明
+2. 构建：
 
-git clone <本仓库地址> huanghun-chess
-#cd huanghun-chess本项目仅供学习与研究使用。使用者需自行遵守所在地法律及各第三方组件许可，:app:1) 准备本地配置（不要提交）
-assembleFullDebug     # 调试包:app:echo "sdk.dir=/你的/Android/Sdk" > local.properties
+```bash
+gradle :app:assembleFullRelease
+# 或使用 wrapper：./gradlew :app:assembleFullRelease
+```
 
-#assembleFullRelease   # 发布包（需自带签名）
+产物：`app/build/outputs/apk/full/release/app-full-release.apk`
 
-./gradlew :app:2) 放入资产（见下一节），然后构建
+### 签名（可选）
 
+仓库**不含**签名文件。把自有 keystore 放到工程根目录并命名 `pikafish-release.jks`
+即可自动签名；也可用环境变量覆盖口令：
 
-./gradlew :app:assembleFullDebug     # 调试包
-assembleFullRelease   # 发布包（需自带签名）
-二、需要自备的资产（不在本仓）
-本仓有意不包含以下文件，请自行放置到对应目录：
-资产	放置路径	说明
+```bash
+export HHXQ_STORE_PASSWORD=你的口令
+export HHXQ_KEY_PASSWORD=你的口令
+export HHXQ_KEY_ALIAS=你的别名
+```
 
-识别模型 pose_model.onnx / layout_model.onnx / piece_classifier.onnx	app/src/full/assets/models/、app/src/full/assets/link/	本项目的识别主链，需自备或自训
+没有 keystore 时只会产出未签名包，构建不会因此失败。
 
+### 资源说明
 
-引擎权重 pikafish.nnue 等	app/src/full/assets/、app/src/full/assets/engine/	受各自许可证约束（见 NOTICE）
+仓库包含引擎二进制与权重（`app/src/main/assets`、`app/src/main/jniLibs`），
+但不包含私有识别模型（`app/src/main/assets/models/`，见下节许可说明）。
+如需完整的棋盘/棋子识别能力，请自行提供模型文件放入该目录。
 
-app/src/main/java/com/pikafish/chess/
-引擎可执行文件 libpikafish_bin.so / libfstockfish.so / libeleeye.so 等	app/src/main/jniLibs/arm64-v8a/	GPLv3 组件，源码见 NOTICE 的上游链接
-图片/音频/字体 / 棋库	app/src/main/assets/、res/	自行替换为你有权使用的素材
-缺少这些资产时，代码仍可编译，但识别与算棋不可用。
-三、架构速览
-├── MainActivity.kt          主界面与全部面板交互
-├── ChessGame.kt             对局内核（走子、悔棋、循环判定、后台多线预想）
-├── engine/                  UCI/UCCI 引擎封装（进程式，非 JNI 链接）
-├── heavy/                   辎重包（引擎共享服务、HTTP 分发）
+## 开源许可
 
+本仓库以 **GNU GPL v3.0** 发布，全文见 [LICENSE](LICENSE)。
 
-├── duel/                    同 WiFi 双人对战（发现、握手、悔棋表决）
-├── qipu/                    棋谱与 ECO 判定
+原因是本项目随包分发并调用多个 GPL 组件（皮卡鱼 Pikafish、Fairy-Stockfish、
+CCStockfish、EleEye 等）。按 GPL 要求，分发二进制时必须提供对应源码，
+本仓库即为该源码的公开获取方式。
 
+第三方组件清单与各自的许可证、源码出处，见
+[app/src/main/assets/licenses/THIRD_PARTY.md](app/src/main/assets/licenses/THIRD_PARTY.md)。
 
+引擎权重（`*.nnue`）另有独立许可条款，见
+[app/src/main/assets/licenses/NNUE-LICENSE.md](app/src/main/assets/licenses/NNUE-LICENSE.md)。
 
-├── link/                    连线识别（截图取帧、布局识别、无障碍落子）
+## 更新记录
 
-└── ui/                      棋盘视图与各页面
+### 2.9.308
 
+- 修复棋例判定：被将军时「支士解将」曾被误判成捉子，导致「一将一捉」拖成和棋；
+  现判定为长打（照捉混合），违规方必须变着。
+- 新增回归测试 `app/src/test/.../model/RepetitionRuleChaseTest.kt`。
 
+### 2.9.307
 
-连线部分的设计要点：帧差驱动 + 多帧投票 + 布局记忆 + 自动方向判定；
+- 发送端小棋盘补齐九宫格斜线、炮位/兵位定位角标、楚河汉界。
+- 三个操作按钮改为一行三列；底部产品立场文案 15 秒轮播。
 
-独立实现见另一仓 link-kit（同为 MIT）。
+## 免责声明
 
-四、第三方组件与许可
-
-
-见 NOTICE。摘要：
-
-引擎（Pikafish / Fairy-Stockfish / CCStockfish / EleEye 等）为 GPLv3， 本项目不链接它们，仅以独立可执行文件 + UCI 文本通信调用；*NNUE 权重有独立许可条款，禁止用于线上作弊等用途；*不得用于任何作弊、代打或违反对弈平台规则的行为。
-.nnue、*.so、
-
-
-本仓不包含上述第三方源码；如需请按其上游仓库获取。
-
-五、贡献
-local.properties、keystore 与私有素材。
-
+本项目仅供个人学习、研究与娱乐使用。请勿用于任何线上比赛作弊或商业牟利行为。

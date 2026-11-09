@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>微思象棋播放器</title>
+<link rel="stylesheet" href="global.css" />
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #20232b; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+  #topbar {
+    height: 52px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 12px; background: #262a36; border-bottom: 1px solid #171a22; box-sizing: border-box;
+    -webkit-user-select: none; user-select: none; flex: 0 0 auto;
+  }
+  #topbar .app-title { color: #e8e8ee; font-size: 17px; font-weight: 600; letter-spacing: 1px; }
+  #topbar .app-actions { display: flex; gap: 10px; }
+  #topbar button {
+    background: #3a4152; color: #f0f0f4; border: none; border-radius: 6px;
+    padding: 7px 14px; font-size: 14px; cursor: pointer; outline: none;
+  }
+  #topbar button:active { background: #4a5468; }
+  #stage { position: relative; width: 100%; height: calc(100% - 52px); overflow: hidden; }
+  .player { position: absolute; inset: 0; }
+</style>
+</head>
+<body>
+  <div id="topbar">
+    <div class="app-title">微思象棋播放器</div>
+    <div class="app-actions">
+      <button id="btn-open" onclick="App.openFile()">打开棋谱</button>
+      <button id="btn-export" onclick="App.showExport()">导出</button>
+    </div>
+  </div>
+  <div id="stage">
+    <div class="player"></div>
+  </div>
+  <script src="js/jquery.js"></script>
+  <script src="vschess.min.js"></script>
+  <script src="viewer.js"></script>
+</body>
+</html>

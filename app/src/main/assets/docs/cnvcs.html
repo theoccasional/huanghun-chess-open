@@ -1,0 +1,81 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{background:#f6f1e7;color:#2b2118;font-family:system-ui,-apple-system,"Noto Sans SC",sans-serif;line-height:1.9;padding:18px 16px 64px;font-size:16px}
+h1{font-size:20px;line-height:1.5;color:#8b2b20;border-bottom:2px solid #d9c9a8;padding-bottom:10px}
+h2{font-size:17px;margin-top:26px;color:#6b4a1f;border-left:4px solid #b8860b;padding-left:10px}
+b{color:#8b2b20} li{margin:6px 0 6px 18px}
+img{max-width:100%;display:block;margin:14px auto;border:1px solid #d9c9a8;border-radius:8px}
+</style></head><body>
+<h1>把 CNVCS 的棋谱放到桌面，一键跳到皮卡鱼复盘</h1>
+<p style="color:#7a6a55">不用 root、不用刷机、不用复制粘贴。</p>
+<p>这段话的核心我捋成一条线：<b>棋谱在 CNVCS 下，桌面快捷方式做跳板，皮卡鱼软件来复盘</b>。下面是完整成文，直接发出去就行。</p>
+<p>---</p>
+<h1>不用 root、不用刷机：把 CNVCS 象棋的棋谱&quot;放&quot;到手机桌面，一键跳转打开你喜欢的皮卡鱼象棋</h1>
+<h2>先说人话：这件事解决什么问题？</h2>
+<p>你在 CNVCS 象棋里下了很多盘棋（网棋、人机都行），棋谱会自动存在一个藏得极深的路径里：</p>
+
+<p>/storage/emulated/0/Android/data/com.cnvcs.xiangqi/files/棋谱</p>
+
+<p>这个路径有多深？深到新手机（Android 11 及以上）把 `Android/data` 目录对外部应用锁死了，<b>普通软件根本进不去</b>。所以每次想用别的象棋软件（比如各家作者做的皮卡鱼象棋）复盘，都要翻半天路径、复制粘贴，非常烦。</p>
+<p>我们的办法，一句话：<b>用 ES 文件浏览器，把这个棋谱文件夹做成一个手机桌面快捷方式。</b> 之后每天的流程变成：</p>
+<p>&gt; 在 CNVCS 下棋 → 保存 → 点桌面上的&quot;棋谱&quot;图标 → 点一盘棋 → 手机弹出&quot;打开方式&quot; → 选你心仪的皮卡鱼象棋 → 直接复盘。</p>
+<p>全程不用 root、不用刷机、不用复制粘贴，两三下完事。</p>
+<h2>什么叫&quot;跳链 / 跳转打开&quot;？（小白版）</h2>
+<p>&quot;跳链&quot;说白了就是：<b>点一个文件，让另一个软件来打开它。</b></p>
+<p>就像微信里收到一个 PDF，点开时手机会问&quot;用哪个应用打开？&quot;——你选 WPS 或浏览器，文件就&quot;跳&quot;到那个软件里了。棋谱完全一样：</p>
+<li>棋谱文件本身是通用的，不是哪家软件独家的；</li>
+<li>你点桌面上棋谱文件夹里的某一盘棋；</li>
+<li>手机弹出&quot;用哪个应用打开？&quot;的列表；</li>
+<li>你选中自己喜欢的皮卡鱼象棋（谁家的都行，不限于某一家）；</li>
+<li>这盘棋自动在那个软件里打开，直接进入复盘。</li>
+<p>关键就一句话：<b>棋谱在 CNVCS 里&quot;生产&quot;，在你自己喜欢的软件里&quot;享受&quot;。</b> CNVCS 管下棋，你的软件管复盘。</p>
+<h2>具体步骤（跟着做就行）</h2>
+<p><b>第一步：装好 ES 文件浏览器</b></p>
+<li>装好后先给它开&quot;所有文件访问&quot;权限（Android 11+ 必需，只开这一次，一劳永逸）；</li>
+<li>建议顺手在系统设置里关掉 ES 的联网权限——广告立刻消失，用起来安静丝滑。</li>
+<p><b>第二步：找到棋谱文件夹</b></p>
+<li>顺着路径走：`/storage/emulated/0/Android/data/com.cnvcs.xiangqi/files/棋谱`</li>
+<li>更省事的走法：ES 首页 → 应用 → 找到&quot;CNVCS 象棋&quot;→ 查看数据目录 → 直接进到 `棋谱` 文件夹。</li>
+<p><b>第三步：把文件夹做成桌面快捷方式</b></p>
+<li>长按 `棋谱` 文件夹 → 菜单里选&quot;发送到桌面 / 创建桌面快捷方式&quot;；</li>
+<li>手机桌面上就会出现一个&quot;棋谱&quot;图标。</li>
+<p><b>第四步：以后每天怎么用</b></p>
+<li>在 CNVCS 下棋，网棋、人机都行，下完保存；</li>
+<li>点桌面&quot;棋谱&quot;图标，里面的棋谱会一天天自动累积；</li>
+<li>点任意一盘 → 弹&quot;打开方式&quot; → 选你喜欢的皮卡鱼象棋 → 复盘。</li>
+<h2>为什么用 ES，不用 MT 管理器？</h2>
+<p>不是 MT 不好，是它不适合这个场景：</p>
+<li><b>MT 管理器</b>是给开发者、折腾党用的工具型管理器。它打开文件的流程是&quot;自己内部处理&quot;，<b>没有&quot;用其他应用打开&quot;这一步</b>——所以谱跳不到你的象棋软件上去，这条路在它那儿断了；</li>
+<li><b>ES 文件浏览器</b>正好相反：既有&quot;桌面快捷方式&quot;，也有标准的&quot;打开方式&quot;跳转选择器，这套流程它全包了。</li>
+<p>一句话：<b>我们要的就是 ES 的&quot;桌面快捷方式 + 跳转打开&quot;，MT 给不了这步，所以 pass。</b></p>
+<h2>为什么不在象棋软件里做个按钮，直接读 CNVCS 的存盘路径？</h2>
+<p>好问题，答案很现实：<b>技术上绕不过去，不是不想做。</b></p>
+<li>CNVCS 的棋谱在 `Android/data` 里，而新手机把 `Android/data` 对外部应用锁死——你的软件专门去读，系统照样回答&quot;无权&quot;；</li>
+<li>就算个别老手机能读，不同品牌、不同系统版本行为还不一样，维护成本极高，而且随时可能被系统进一步收紧；</li>
+<li>桌面快捷方式 + 跳链这个方案<b>不碰权限红线、不读别人的数据、系统完全允许</b>，长期稳定。</li>
+<p>这就是它最大的价值：<b>绕开锁死的路径，走一条系统永远放行的路。</b></p>
+<h2>这样做到底有什么好处？</h2>
+<p><b>对使用者：</b></p>
+<li><b>快</b>：下完棋，桌面两三下打开，不用翻深路径；</li>
+<li><b>稳</b>：路径不用记、不用找，快捷方式永远是那扇&quot;门&quot;；</li>
+<li><b>省事</b>：不用再复制粘贴棋谱到别的软件里；</li>
+<li><b>自动累积</b>：今天下的、明天下的，棋谱一天天自动躺在桌面文件夹里，想复盘哪盘点哪盘；</li>
+<li><b>自由</b>：复盘用哪家皮卡鱼都行，挑复盘功能最好的那款。</li>
+<p><b>对开发者（独立开发者的福音）：</b></p>
+<li><b>不用费劲开发网络对战、蓝牙对战、同 WiFi 对战</b>——让用户在 CNVCS 里下棋，你的软件只专注&quot;打开棋谱 + 复盘&quot;这两件事，做精；</li>
+<li><b>不用头疼 Android/data 权限</b>——读不到就不读，用跳链绕过去；</li>
+<li><b>用户棋谱天然累积</b>在通向你的软件的入口旁边，粘性自然来；</li>
+<li><b>省下来的开发时间</b>，全部投在棋力和复盘体验上。</li>
+<h2>注意事项（记住这几条就不踩坑）</h2>
+<li>第一次必须给 ES 开&quot;所有文件访问&quot;，只开这一次；</li>
+<li>建议关掉 ES 的联网权限，广告消失、安静丝滑；</li>
+<li>快捷方式指向的是<b>文件夹</b>而不是单个棋谱，棋谱才会自动累积；</li>
+<li>弹&quot;打开方式&quot;时，可以选&quot;仅此一次&quot;（每次自己挑软件），也可以选&quot;始终&quot;（固定用某一款）；</li>
+<li>换手机后重装 ES、开一次权限、再做一次快捷方式即可，棋谱本身在 CNVCS 里，丢不了。</li>
+<h2>最后一句总结</h2>
+<p><b>棋谱在 CNVCS 下，桌面快捷方式做跳板，皮卡鱼软件来复盘。</b> 一次设置，长期稳定，零复制粘贴——开发者省心，玩家省力，这就是这套玩法的全部意义。</p>
+<p>---</p>
+<h2>示意图</h2>
+<img src="img/image1.jpeg"/><img src="img/image2.jpeg"/><img src="img/image3.jpeg"/><img src="img/image4.jpeg"/>
+</body></html>

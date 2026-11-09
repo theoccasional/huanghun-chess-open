@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 红方鼓型棋子：均匀红色渐变圆 + 金色描边（无中心高光） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <gradient
+        android:type="radial"
+        android:gradientRadius="60%p"
+        android:startColor="#D83838"
+        android:centerColor="#C22626"
+        android:endColor="#8F0F0F" />
+    <stroke
+        android:width="1.5dp"
+        android:color="#FFF3D0" />
+    <size
+        android:width="40dp"
+        android:height="40dp" />
+</shape>
