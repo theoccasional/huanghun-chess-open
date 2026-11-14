@@ -6,14 +6,20 @@ import com.pikafish.chess.heavy.HeavyStore
 import org.json.JSONObject
 import java.nio.charset.Charset
 
-/** 一本书（对应一个 CBL 原文件；isUserUpload 标用户上传的棋谱文件；isLocalDoc 标 HHXQ 本地文档/存档） */
+/** 一本书（对应一个 CBL 原文件；isUserUpload 标用户上传的棋谱文件；isLocalDoc 标 HHXQ 本地文档/存档）
+ *
+ *  ★ [groupPrefix]：大包分册用。一个几百兆、几十万个条目的压缩包（或一个装满棋谱的目录），
+ *    不再当成"一本书"整体塞进内存，而是按子目录拆成若干"册"，每册只认自己那一段：
+ *      · isUserUpload 且 groupPrefix 非空 → file 是 zip 文件名，groupPrefix 是包内目录前缀；
+ *      · isLocalDoc  且 groupPrefix 非空 → file/groupPrefix 是 HHXQ 下的相对目录。 */
 data class QipuBook(
     val name: String,
     val file: String,
     val rawSize: Int,
     val mtime: Long = 0L,
     val isUserUpload: Boolean = false,
-    val isLocalDoc: Boolean = false
+    val isLocalDoc: Boolean = false,
+    val groupPrefix: String = ""
 )
 
 /** 一个分类 */
@@ -128,6 +134,162 @@ object QipuLibrary {
     /** 用户上传到宝库的棋谱目录（filesDir 下，重启后仍在） */
     const val USER_DIR = "qipu_user"
 
+    /** 大包分册的目录索引后缀（就放在 zip 旁边，形如 `xxx.zip.catalog.json`） */
+    const val CATALOG_SUFFIX = ".catalog.json"
+
+    /** 一册最多解多少局：单册再多也不会把内存顶爆（超出部分提示用别的方式看） */
+    private const val GROUP_CAP = 4000
+
+    /** 内置里「可接受本分类上传」的分类名（与 assets/qipu_cbl/index.json 对齐） */
+    val BUILTIN_CATS = linkedSetOf("习题", "专著", "专辑", "五羊杯", "其它", "古谱", "开局", "残局", "赛事", "名手对局")
+
+    /** 分册上限：病态包（几十万个子目录）也不至于把索引撑爆 */
+    private const val MAX_GROUPS = 20000
+
+    /** 分册索引里的一个分组 */
+    data class ZipGroup(val prefix: String, val name: String, val count: Int)
+
+    /** 这些扩展名才算"棋谱"，分册时只统计它们 */
+    private val QIPU_EXT = setOf(
+        "xqf", "mxq", "cbl", "cbr", "pgn", "txt", "ubb", "json", "qyl", "chm", "rar", "zip"
+    )
+
+    private fun isQipuName(n: String): Boolean {
+        val e = n.substringAfterLast('.', "").lowercase()
+        return e in QIPU_EXT
+    }
+
+    /**
+     * ★ 给一个大压缩包建"分册索引"：只读 ZIP 中央目录（不解压任何条目），
+     *   按每个条目所在的目录分组。327,251 个条目也只花一两秒、几 MB 内存。
+     *   返回分组数；0 表示没建成（不是 zip / 打不开）。
+     */
+    fun buildCatalogForZip(zipFile: java.io.File): Int {
+        return try {
+            val counts = LinkedHashMap<String, Int>()
+            java.util.zip.ZipFile(zipFile, Charsets.ISO_8859_1).use { zf ->
+                val en = zf.entries()
+                while (en.hasMoreElements()) {
+                    val e = en.nextElement()
+                    if (e.isDirectory) continue
+                    val name = gbkName(e.name)
+                    if (!isQipuName(name)) continue
+                    val slash = name.lastIndexOf('/')
+                    if (slash <= 0) continue          // 根目录散文件不参与分册
+                    val prefix = name.substring(0, slash + 1)
+                    if (counts.size >= MAX_GROUPS && !counts.containsKey(prefix)) continue  // 病态包保护
+                    counts[prefix] = (counts[prefix] ?: 0) + 1
+                }
+            }
+            if (counts.isEmpty()) return 0
+            val arr = StringBuilder()
+            arr.append("{\"groups\":[")
+            var first = true
+            for ((prefix, n) in counts) {
+                if (!first) arr.append(',')
+                first = false
+                val gname = prefix.trimEnd('/').substringAfterLast('/')
+                arr.append("{\"prefix\":").append(JSONObject.quote(prefix))
+                    .append(",\"name\":").append(JSONObject.quote(gname))
+                    .append(",\"count\":").append(n).append('}')
+            }
+            arr.append("],\"total\":").append(counts.values.sum()).append('}')
+            java.io.File(zipFile.parentFile, zipFile.name + CATALOG_SUFFIX).writeText(arr.toString())
+            counts.size
+        } catch (e: Exception) {
+            e.printStackTrace()
+            0
+        }
+    }
+
+    /** 读某个上传文件旁边的分册索引；没有/坏掉返回空表。 */
+    fun readCatalog(f: java.io.File): List<ZipGroup> {
+        val cf = java.io.File(f.parentFile, f.name + CATALOG_SUFFIX)
+        if (!cf.isFile || cf.length() <= 0) return emptyList()
+        return try {
+            val o = JSONObject(cf.readText())
+            val arr = o.optJSONArray("groups") ?: return emptyList()
+            val out = ArrayList<ZipGroup>(arr.length())
+            for (i in 0 until arr.length()) {
+                val g = arr.getJSONObject(i)
+                out.add(
+                    ZipGroup(
+                        prefix = g.optString("prefix"),
+                        name = g.optString("name"),
+                        count = g.optInt("count")
+                    )
+                )
+            }
+            out.sortedBy { it.prefix }
+        } catch (e: Exception) { emptyList() }
+    }
+
+    /**
+     * ★ 打开任意一本书（含"分册"）：统一入口，别处不要再自己 loadGamesBytes + decodeGames。
+     *   · 申请上传的大包分册 → 只解该前缀下的条目（逐个读、逐个放，内存不随包体涨）；
+     *   · HHXQ 目录分册      → 只解该目录下的文件；
+     *   · 普通文件           → 老路径（整本读入后按内容分流）。
+     */
+    fun catDirName(cat: String): String =
+        cat.replace(Regex("[\\\\/:*?\"<>|]"), "_")
+
+    fun decodeBook(context: Context, book: QipuBook): List<QipuGame> {
+        val gp = book.groupPrefix
+        if (gp.isNotBlank()) {
+            return if (book.isUserUpload) decodeZipGroup(context, book.file, gp, book.name)
+            else decodeLocalDir(gp, book.name)
+        }
+        return decodeGames(loadGamesBytes(context, book), book.name)
+    }
+
+    /** 解一个上传压缩包里的某一册（prefix 目录下的全部条目）。 */
+    fun decodeZipGroup(context: Context, zipName: String, prefix: String, bookName: String): List<QipuGame> {
+        val f = java.io.File(java.io.File(context.filesDir, USER_DIR), zipName)
+        if (!f.isFile) return emptyList()
+        val out = ArrayList<QipuGame>()
+        try {
+            java.util.zip.ZipFile(f, Charsets.ISO_8859_1).use { zf ->
+                val list = ArrayList<java.util.zip.ZipEntry>(64)
+                val en = zf.entries()
+                while (en.hasMoreElements()) {
+                    val e = en.nextElement()
+                    if (e.isDirectory || !e.name.startsWith(prefix)) continue
+                    if (!isQipuName(gbkName(e.name))) continue
+                    list.add(e)
+                }
+                list.sortBy { it.name }
+                var idx = 0
+                for (e in list) {
+                    if (out.size >= GROUP_CAP) break
+                    val bytes = try { zf.getInputStream(e).use { it.readBytes() } } catch (ex: Exception) { null }
+                        ?: continue
+                    if (bytes.size < 8) continue
+                    idx++
+                    val nm = gbkName(e.name.substringAfterLast('/')).substringBeforeLast('.')
+                    out.addAll(decodeEntryGames(bytes, nm, bookName, bookName, 0, idx))
+                }
+            }
+        } catch (e: Exception) { e.printStackTrace() }
+        return out
+    }
+
+    /** 解 HHXQ 下某个目录里的全部棋谱（一次只读一个文件）。 */
+    fun decodeLocalDir(relDir: String, bookName: String): List<QipuGame> {
+        val dir = java.io.File(localDocRoot(), relDir)
+        val files = dir.listFiles()?.filter { it.isFile && it.length() > 0 }?.sortedBy { it.name }
+            ?: return emptyList()
+        val out = ArrayList<QipuGame>()
+        var idx = 0
+        for (f in files) {
+            if (out.size >= GROUP_CAP) break
+            val bytes = try { f.readBytes() } catch (e: Exception) { null } ?: continue
+            if (bytes.size < 8) continue
+            idx++
+            out.addAll(decodeEntryGames(bytes, f.name.substringBeforeLast('.'), bookName, bookName, 0, idx))
+        }
+        return out
+    }
+
     /** ★ 挑战模式棋谱的专属子目录名（宝库里单列一个「挑战棋谱」菜单，就在 HHXQ 下）。 */
     const val CHALLENGE_DIR_NAME = "挑战棋谱"
 
@@ -183,20 +345,65 @@ object QipuLibrary {
             }
             cats.add(QipuCategory(co.getString("name"), books))
         }
+        // ★ 每个内置分类各自的「本分类上传」：文件放在 qipu_user/<分类名>/ 下，
+        //   列在该分类书单末尾。清应用数据只会清掉这些上传，内置骨架在 assets 里，删不掉。
+        try {
+            val root = java.io.File(context.filesDir, USER_DIR)
+            for (i in cats.indices) {
+                val catName = cats[i].name
+                if (catName !in BUILTIN_CATS) continue
+                val sub = java.io.File(root, catDirName(catName))
+                if (!sub.isDirectory) continue
+                val ups = sub.listFiles()?.filter { it.isFile && it.length() > 0 }
+                    ?.sortedBy { it.name }?.map { f ->
+                        QipuBook(
+                            name = f.name.substringBeforeLast('.'),
+                            file = catDirName(catName) + "/" + f.name,
+                            rawSize = f.length().toInt(),
+                            mtime = f.lastModified(),
+                            isUserUpload = true
+                        )
+                    } ?: emptyList()
+                if (ups.isNotEmpty()) cats[i] = cats[i].copy(books = cats[i].books + ups)
+            }
+        } catch (e: Exception) { /* 忽略 */ }
+
         // ★ 追加「我的上传」分类：用户在开局库/宝库上传的棋谱文件，落盘到此目录，
         //   重启后依然在宝库里找得到。文件名即书名。
         //   ★ 即使一份都没有也照样列出（本数显示 0）——清空后仍能看到「（0本）」，数目真实可核对。
         try {
             val dir = java.io.File(context.filesDir, USER_DIR)
             val files = dir.listFiles()?.filter { it.isFile && it.length() > 0 } ?: emptyList()
-            val books = files.sortedBy { it.name }.map { f ->
-                QipuBook(
-                    name = f.name.substringBeforeLast('.'),
-                    file = f.name,
-                    rawSize = f.length().toInt(),
-                    mtime = f.lastModified(),
-                    isUserUpload = true
-                )
+            val books = ArrayList<QipuBook>()
+            for (f in files.sortedBy { it.name }) {
+                if (f.name.endsWith(CATALOG_SUFFIX)) continue
+                // ★ 大包：有 catalog 就拆成"册"列出来，zip 本身不再作为一本书（否则一点就整包解，必 OOM）
+                val groups = readCatalog(f)
+                if (groups.isNotEmpty()) {
+                    val base = f.name.substringBeforeLast('.')
+                    for (g in groups) {
+                        books.add(
+                            QipuBook(
+                                name = "$base · ${g.name}（${g.count}局）",
+                                file = f.name,
+                                rawSize = g.count * 2048,
+                                mtime = f.lastModified(),
+                                isUserUpload = true,
+                                groupPrefix = g.prefix
+                            )
+                        )
+                    }
+                } else {
+                    books.add(
+                        QipuBook(
+                            name = f.name.substringBeforeLast('.'),
+                            file = f.name,
+                            rawSize = f.length().toInt(),
+                            mtime = f.lastModified(),
+                            isUserUpload = true
+                        )
+                    )
+                }
             }
             cats.add(QipuCategory("我的上传", books))
         } catch (e: Exception) { cats.add(QipuCategory("我的上传", emptyList())) }
@@ -221,7 +428,7 @@ object QipuLibrary {
         //   清缓存/清数据也不丢（外部存储永久保留），无需手工导入，宝库直接可见可读。
         //   ★ 同样即使一份都没有也照样列出（本数显示 0）——清空后数目真实归零、可核对。
         try {
-            cats.add(QipuCategory("本地文档", getLocalDocsCached()))
+            cats.add(QipuCategory("本地文档", getLocalDocsCached(context)))
         } catch (e: Exception) { cats.add(QipuCategory("本地文档", emptyList())) }
         return cats
     }
@@ -239,46 +446,162 @@ object QipuLibrary {
     @Volatile
     private var localDocsCache: List<QipuBook>? = null
 
-    /** ★ 获取 HHXQ 本地文档清单：缓存优先；缓存为空才扫描（首次可能较慢，勿在主线程首触发）。 */
-    fun getLocalDocsCached(): List<QipuBook> {
-        localDocsCache?.let { return it }
-        val scanned = scanLocalDocs()
-        localDocsCache = scanned    // 缓存，避免打开宝库时重复扫盘卡顿
-        return scanned
-    }
+    /** 正在后台扫盘（避免重复起线程） */
+    @Volatile
+    private var docsScanning = false
+    private val docsLock = Any()
 
-    /** ★ 刷新 HHXQ 清单缓存（供后台线程预热/有新文件时调用；不阻塞主线程调用方）。 */
-    fun refreshLocalDocsCache(): List<QipuBook> {
-        val scanned = scanLocalDocs()
-        localDocsCache = scanned
-        return scanned
-    }
+    /** 上次扫盘结果的磁盘快照（重启后直接读它，不再重新遍历几十万个文件） */
+    private const val DOCS_CACHE_FILE = "local_docs_index.json"
+
+    /** 快照多久算"新鲜"：新鲜时连后台核对都不做，启动零扫盘 */
+    private const val DOCS_FRESH_MS = 5 * 60 * 1000L
+
+    @Volatile
+    private var docsSnapshotTs = 0L
 
     /**
-     * ★ 存档收集：递归扫描 HHXQ 绝对路径下所有文件（含子目录 vault_games/ 等），
-     *   每个文件登记为一本“本地文档”，返回完整清单（新的在前）。读得全，一个都不漏。
-     *   注意：此方法做真实磁盘遍历，应在后台线程调用（勿在主线程，文件多会卡）。 */
-    fun scanLocalDocs(): List<QipuBook> {
+     * ★ 获取 HHXQ 本地文档清单 —— **绝不在调用线程扫盘**。
+     *   顺序：内存缓存 → 磁盘快照 → （快照旧了才在后台扫一次，先返回快照）。
+     *   这样哪怕 HHXQ 里躺着 32 万个文件、10 GB，打开宝库也是毫秒级。
+     */
+    fun getLocalDocsCached(context: Context): List<QipuBook> {
+        localDocsCache?.let { return it }
+        synchronized(docsLock) {
+            localDocsCache?.let { return it }
+            val disk = readDocsCacheFromDisk(context)
+            if (disk != null) {
+                localDocsCache = disk
+                // 只有快照过期才在后台核对一次（新增/删除的文件过一会儿出现）
+                if (System.currentTimeMillis() - docsSnapshotTs > DOCS_FRESH_MS) kickDocsScan(context)
+                return disk
+            }
+        }
+        kickDocsScan(context)
+        return emptyList()
+    }
+
+    /** 后台扫盘（不阻塞调用方）。 */
+    fun kickDocsScan(context: Context) {
+        if (docsScanning) return
+        docsScanning = true
+        Thread {
+            try { scanLocalDocs(context) } catch (e: Exception) { /* 忽略 */ } finally { docsScanning = false }
+        }.apply { isDaemon = true; priority = Thread.MIN_PRIORITY }.start()
+    }
+
+    /** 是否正在后台核对 HHXQ（供宝库显示"正在建索引"提示，不阻塞任何操作）。 */
+    fun isDocsScanning(): Boolean = docsScanning
+
+    /** ★ 刷新 HHXQ 清单（阻塞，调用方必须在后台线程）。 */
+    fun refreshLocalDocsCache(context: Context): List<QipuBook> = scanLocalDocs(context)
+
+    /**
+     * ★ 存档收集：递归扫描 HHXQ 绝对路径（子目录按"册"归并，见 collectLocalFiles）。
+     *   注意：此方法做真实磁盘遍历，**只能在后台线程调用**。
+     */
+    fun scanLocalDocs(context: Context): List<QipuBook> {
         val root = localDocRoot()
         val out = ArrayList<QipuBook>()
         try {
-            if (!root.exists() || !root.isDirectory) { localDocsCache = emptyList(); return out }
+            if (!root.exists() || !root.isDirectory) {
+                localDocsCache = emptyList()
+                saveDocsCacheToDisk(context, emptyList())
+                return out
+            }
             collectLocalFiles(root, root, out)
         } catch (e: Exception) { /* 忽略 */ }
         val sorted = out.sortedByDescending { it.mtime }
         localDocsCache = sorted
+        saveDocsCacheToDisk(context, sorted)
         return sorted
     }
 
+    private fun saveDocsCacheToDisk(context: Context, list: List<QipuBook>) {
+        try {
+            val sb = StringBuilder(64 + list.size * 96)
+            sb.append("{\"ts\":").append(System.currentTimeMillis()).append(",\"books\":[")
+            var first = true
+            for (b in list) {
+                if (!first) sb.append(',')
+                first = false
+                sb.append("{\"n\":").append(JSONObject.quote(b.name))
+                    .append(",\"f\":").append(JSONObject.quote(b.file))
+                    .append(",\"s\":").append(b.rawSize)
+                    .append(",\"m\":").append(b.mtime)
+                    .append(",\"g\":").append(JSONObject.quote(b.groupPrefix))
+                    .append('}')
+            }
+            sb.append("]}")
+            java.io.File(context.filesDir, DOCS_CACHE_FILE).writeText(sb.toString())
+        } catch (e: Exception) { /* 快照失败不影响使用 */ }
+    }
+
+    private fun readDocsCacheFromDisk(context: Context): List<QipuBook>? {
+        val f = java.io.File(context.filesDir, DOCS_CACHE_FILE)
+        if (!f.isFile || f.length() <= 2) return null
+        return try {
+            val root = JSONObject(f.readText())
+            docsSnapshotTs = root.optLong("ts")
+            val arr = root.optJSONArray("books") ?: return null
+            val out = ArrayList<QipuBook>(arr.length())
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                out.add(
+                    QipuBook(
+                        name = o.optString("n"),
+                        file = o.optString("f"),
+                        rawSize = o.optInt("s"),
+                        mtime = o.optLong("m"),
+                        isLocalDoc = true,
+                        groupPrefix = o.optString("g")
+                    )
+                )
+            }
+            out
+        } catch (e: Exception) { null }
+    }
+
+    /**
+     * ★ 收集 HHXQ 下的棋谱。
+     *
+     * 老做法是"一个文件一本书"——把 32 万个 xqf 解压进 HHXQ 后，光清单里就有 32 万条，
+     * 一打开宝库就 OOM/闪退。现在：**除了根目录，任何一个子目录直接装着 ≥ 2 个文件，
+     * 就把这个目录登记成一"册"**（groupPrefix=相对目录），册内再按局懒解。
+     * 于是 32 万文件变成两千多册，列表、内存都在可控范围。
+     */
     private fun collectLocalFiles(root: java.io.File, dir: java.io.File, out: MutableList<QipuBook>) {
         val kids = dir.listFiles() ?: return
+        val isRoot = dir.absolutePath == root.absolutePath
+        val files = ArrayList<java.io.File>()
         for (f in kids) {
             if (f.isDirectory) {
                 // ★ 挑战棋谱有专属分类，不再并入「本地文档」，免得同一份棋谱两处重复显示
                 if (f.name == CHALLENGE_DIR_NAME) continue
-                collectLocalFiles(root, f, out); continue
+                collectLocalFiles(root, f, out)
+            } else if (f.isFile) {
+                files.add(f)
             }
-            if (!f.isFile || f.length() <= 0) continue
+        }
+        if (files.isEmpty()) return
+        if (!isRoot && files.size >= 2) {
+            val rel = dir.absolutePath.removePrefix(root.absolutePath).trimStart('/')
+            var size = 0
+            if (files.size <= 300) for (f in files) size += f.length().toInt() else size = files.size * 2048
+            out.add(
+                QipuBook(
+                    name = "${dir.name}（${files.size}局）",
+                    file = rel,
+                    rawSize = size,
+                    mtime = dir.lastModified(),
+                    isLocalDoc = true,
+                    groupPrefix = rel
+                )
+            )
+            return
+        }
+        for (f in files) {
+            if (f.length() <= 0) continue
             val rel = f.absolutePath.removePrefix(root.absolutePath).trimStart('/')
             out.add(
                 QipuBook(
@@ -305,6 +628,10 @@ object QipuLibrary {
      * 这里返回 Data 包装，由调用方控制线程。
      */
     fun loadGamesBytes(context: Context, book: QipuBook): ByteArray {
+        // ★ 分册书没有"整本字节"这一说：硬读会把几百兆整包读进内存。一律走 decodeBook。
+        if (book.groupPrefix.isNotBlank()) {
+            throw java.io.IOException("分册书请使用 QipuLibrary.decodeBook")
+        }
         // ★ 本地文档（HHXQ 外部存储目录下的 CBL/XQF/JSON/TXT/PGN 等）：按相对路径直接读盘，
         //   供全局搜索建索引与打开共用；读不到即抛异常，由调用方决定用什么分支回退。
         if (book.isLocalDoc) {
@@ -729,6 +1056,10 @@ object QipuLibrary {
     /** ZIP 条目名还原：ISO-8859-1 的逐字节串 → GBK 中文名（解不出则原样返回）。纯 ASCII 名不受影响。 */
     private fun gbkName(raw: String): String {
         if (raw.all { it.code < 0x80 }) return raw
+        // ★ 已经解成正常中文（含拉丁字母表以外的字符）说明这个包的条目名本就带 UTF-8 标志位、
+        //   ZipInputStream 已按 UTF-8 解对了 —— 此时再套一次 ISO-8859-1→GBK 会把每个汉字压成
+        //   '?'（toByteArray(ISO_8859_1) 对不可表示字符一律给 0x3F），整包名字就全花了。
+        if (raw.any { it.code > 0xFF }) return raw
         return try {
             val s = String(raw.toByteArray(Charsets.ISO_8859_1), Charset.forName("GBK"))
             if (s.indexOf('\uFFFD') >= 0) raw else s
@@ -886,7 +1217,7 @@ object QipuLibrary {
     fun clearCategory(context: Context, cat: QipuCategory): Int {
         var n = 0
         for (b in cat.books) if (deleteBook(context, b)) n++
-        try { refreshLocalDocsCache() } catch (e: Exception) { /* 忽略 */ }
+        try { refreshLocalDocsCache(context) } catch (e: Exception) { /* 忽略 */ }
         return n
     }
 
@@ -898,8 +1229,7 @@ object QipuLibrary {
     ) : AsyncTask<Void, Void, List<QipuGame>?>() {
         override fun doInBackground(vararg params: Void?): List<QipuGame>? {
             return try {
-                val bytes = loadGamesBytes(context, book)
-                decodeGames(bytes, book.name)
+                decodeBook(context, book)
             } catch (e: Exception) {
                 e.printStackTrace()
                 null

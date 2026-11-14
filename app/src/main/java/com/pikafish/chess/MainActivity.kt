@@ -151,6 +151,7 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_LOCAL_BOOK_PATHS = "local_book_paths" // ★ 已挂接外置库文件路径列表(逗号分隔)
         private const val KEY_HINT_HVH_DISMISSED = "hint_hvh_dismissed"  // 人脑对人脑提示是否已关闭
         private const val KEY_VAULT_BOOK_FILE = "vault_book_file"        // 棋库当前阅读的书文件
+        private const val KEY_VAULT_BOOK_GROUP = "vault_book_group"      // 大包分册：包内目录前缀
         private const val KEY_VAULT_GAME_INDEX = "vault_game_index"      // 棋库当前阅读的局索引
         // 复盘最小化小浮条的记忆位置（0..1 相对比例，重启后按用户上次停的位置常住）
         private const val KEY_REVIEW_BAR_X = "review_bar_fx"
@@ -198,6 +199,8 @@ class MainActivity : AppCompatActivity() {
     private var bookPickerLauncher: androidx.activity.result.ActivityResultLauncher<Array<String>>? = null
     // ★ 上传棋谱到宝库（「我的上传」分类）的多选启动器
     private var qipuUploadPickerLauncher: androidx.activity.result.ActivityResultLauncher<Array<String>>? = null
+    /** 本次上传要归入的内置分类（空 = 「我的上传」） */
+    private var pendingUploadCategory: String? = null
     // ★ 正在后台装载的外置库名集合（线程安全）。渲染时显示"加载中…"，
     //   装完由后台线程回主线程移除。用户随时可关面板去下棋，装载不阻塞主界面。
     private val loadingBooks: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
@@ -2371,8 +2374,9 @@ class MainActivity : AppCompatActivity() {
     private fun scheduleHHXQAutoLoad() {
         Thread {
             try {
-                // ★ 先预热宝库「本地文档」分类缓存（后台扫一次盘，宝库打开直接读缓存，不卡 UI）
-                com.pikafish.chess.qipu.QipuLibrary.refreshLocalDocsCache()
+                // ★ 先预热宝库「本地文档」分类缓存：有磁盘快照就直接用（启动零扫盘）；
+                //   快照过期才在后台核对一次，绝不在主线程遍历几十万个文件。
+                com.pikafish.chess.qipu.QipuLibrary.getLocalDocsCached(this@MainActivity)
             } catch (e: Exception) { /* 预热失败不致命 */ }
             var cand: ExternalCandidate? = null
             try {
@@ -4912,11 +4916,17 @@ class MainActivity : AppCompatActivity() {
                 val p = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 p.edit()
                     .putString(KEY_VAULT_BOOK_FILE, book.file)
+                    .putString(KEY_VAULT_BOOK_GROUP, book.groupPrefix)
                     .putInt(KEY_VAULT_GAME_INDEX, index)
                     .apply()
                 loadQipuGame(games[index])
             }, { id -> resumeVaultById(id) }, { book -> openUserUploadBook(book) },
-                { book -> openLocalDocBook(book) }, { showReviewLoadDialog() }).show()
+                { book -> openLocalDocBook(book) }, { showReviewLoadDialog() },
+                { cat ->
+                    // ★ 分类内上传：记住目标分类，走同一个多选器
+                    pendingUploadCategory = cat
+                    qipuUploadPickerLauncher?.launch(arrayOf("*/*"))
+                }).show()
         } catch (e: Exception) {
             Toast.makeText(this, "棋谱库打开失败: ${e.message}", Toast.LENGTH_SHORT).show()
         }
@@ -6084,16 +6094,14 @@ class MainActivity : AppCompatActivity() {
     private fun restoreVaultSession(andLoad: Boolean): Boolean {
         val p = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val file = p.getString(KEY_VAULT_BOOK_FILE, "") ?: ""
+        val group = p.getString(KEY_VAULT_BOOK_GROUP, "") ?: ""
         if (file.isBlank()) return false
         try {
             val cats = com.pikafish.chess.qipu.QipuLibrary.loadCategories(this)
-            val cat = cats.firstOrNull { c -> c.books.any { it.file == file } }
+            val cat = cats.firstOrNull { c -> c.books.any { it.file == file && it.groupPrefix == group } }
                 ?: return false
-            val book = cat.books.first { it.file == file }
-            val games = com.pikafish.chess.qipu.QipuLibrary.decodeGames(
-                com.pikafish.chess.qipu.QipuLibrary.loadGamesBytes(this, book),
-                book.name
-            )
+            val book = cat.books.first { it.file == file && it.groupPrefix == group }
+            val games = com.pikafish.chess.qipu.QipuLibrary.decodeBook(this, book)
             if (games.isEmpty()) return false
             currentVaultBook = book
             currentVaultGames = games
@@ -6198,12 +6206,14 @@ class MainActivity : AppCompatActivity() {
                     var okGames: List<QipuGame> = emptyList()
                     try {
                         val cats = com.pikafish.chess.qipu.QipuLibrary.loadCategories(this@MainActivity)
-                        val cat = cats.firstOrNull { c -> c.books.any { it.file == e.fileName } }
+                        // ★ 大包分册：同一个 zip 会拆成很多"册"，file 相同、名字不同，按书名再筛一次
+                        val same = { b: com.pikafish.chess.qipu.QipuBook ->
+                            b.file == e.fileName && (e.bookName.isBlank() || b.name == e.bookName)
+                        }
+                        val cat = cats.firstOrNull { c -> c.books.any(same) }
                         if (cat != null && e.bookIndex >= 0) {
-                            val book = cat.books.first { it.file == e.fileName }
-                            val games = com.pikafish.chess.qipu.QipuLibrary.decodeGames(
-                                com.pikafish.chess.qipu.QipuLibrary.loadGamesBytes(this@MainActivity, book),
-                                book.name)
+                            val book = cat.books.first(same)
+                            val games = com.pikafish.chess.qipu.QipuLibrary.decodeBook(this@MainActivity, book)
                             if (games.isNotEmpty() && e.bookIndex in games.indices) {
                                 okBook = book; okGames = games
                             }
@@ -6219,6 +6229,7 @@ class MainActivity : AppCompatActivity() {
                             currentVaultGames = okGames
                             getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
                                 .putString(KEY_VAULT_BOOK_FILE, book.file)
+                                .putString(KEY_VAULT_BOOK_GROUP, book.groupPrefix)
                                 .putInt(KEY_VAULT_GAME_INDEX, e.bookIndex).apply()
                             loadQipuGame(okGames[e.bookIndex])
                             Toast.makeText(this@MainActivity, "已回到《${e.title}》", Toast.LENGTH_SHORT).show()
@@ -6398,18 +6409,14 @@ class MainActivity : AppCompatActivity() {
             if (bookMemorizer.active) stopBookMemorize()
             Toast.makeText(this, "正在载入《${book.name}》…", Toast.LENGTH_SHORT).show()
             initScope.launch(Dispatchers.IO) {
-                val bytes = try {
-                    com.pikafish.chess.qipu.QipuLibrary.readUserUpload(this@MainActivity, book.file)
-                } catch (e: Exception) { null }
-                if (bytes == null) {
-                    runOnUiThread {
-                        Toast.makeText(this@MainActivity, "找不到《${book.name}》，可能已被删除", Toast.LENGTH_LONG).show()
-                    }
-                    return@launch
-                }
+                // ★ 统一走 decodeBook：分册书只解自己那一段，绝不把几百兆整包读进内存
                 val games = try {
-                    com.pikafish.chess.qipu.QipuLibrary.decodeGames(bytes, book.name)
+                    com.pikafish.chess.qipu.QipuLibrary.decodeBook(this@MainActivity, book)
                 } catch (e: Exception) { emptyList() }
+                val fallbackBytes = if (games.isEmpty() && book.groupPrefix.isBlank()) {
+                    try { com.pikafish.chess.qipu.QipuLibrary.loadGamesBytes(this@MainActivity, book) }
+                    catch (e: Exception) { null }
+                } else null
                 runOnUiThread {
                     if (games.isNotEmpty()) {
                         // 与「宝库 → 点某一则」完全同一条链路：落阅读会话、持久化、回放第一局
@@ -6418,19 +6425,22 @@ class MainActivity : AppCompatActivity() {
                         currentVaultGameIndex = 0
                         getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
                             .putString(KEY_VAULT_BOOK_FILE, book.file)
+                            .putString(KEY_VAULT_BOOK_GROUP, book.groupPrefix)
                             .putInt(KEY_VAULT_GAME_INDEX, 0)
                             .apply()
                         loadQipuGame(games[0])
                         if (games.size > 1) {
                             Toast.makeText(
                                 this@MainActivity,
-                                "已打开《${book.name}》，本包共 ${games.size} 则（底部「上一则/下一则」逐局翻看）",
+                                "已打开《${book.name}》，本册共 ${games.size} 则（底部「上一则/下一则」逐局翻看）",
                                 Toast.LENGTH_LONG
                             ).show()
                         }
-                    } else {
+                    } else if (fallbackBytes != null) {
                         // 文本类棋谱（PGN/中文记谱/ICCS/FEN…）：交原文本管线自动识别（内含二进制护栏）
-                        openBookBytes(book, bytes, null)
+                        openBookBytes(book, fallbackBytes, null)
+                    } else {
+                        Toast.makeText(this@MainActivity, "这本解不出棋局", Toast.LENGTH_LONG).show()
                     }
                 }
             }
@@ -6646,6 +6656,8 @@ class MainActivity : AppCompatActivity() {
     private fun openLocalDocBook(book: com.pikafish.chess.qipu.QipuBook) {
         try {
             if (bookMemorizer.active) stopBookMemorize()
+            // ★ 目录分册：没有"单个文件"，直接走 decodeBook 那条按册解的路
+            if (book.groupPrefix.isNotBlank()) { openUserUploadBook(book); return }
             // ★ 同「我的上传」：读盘 + CBL 解码放后台线程，绝不阻塞主界面。
             initScope.launch(Dispatchers.IO) {
                 val bytes = try {
@@ -11265,35 +11277,76 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** ★ 批量把选中的棋谱文件持久化到宝库「我的上传」（无数量限制，重启后仍在）。 */
+    /** ★ 批量把选中的棋谱文件持久化到宝库「我的上传」（无数量限制，重启后仍在）。
+     *  读盘/复制一律在后台线程流式进行：几百兆的包也不会把主线程（和内存）顶爆。 */
     private fun addQipuToVaultFromUris(uris: List<android.net.Uri>) {
         if (uris.isEmpty()) return
-        var ok = 0
-        var fail = 0
-        for (uri in uris) {
-            if (uploadQipuToVault(uri)) ok++ else fail++
-        }
-        if (ok > 0) {
-            toast("已上传到宝库·我的上传 $ok 个棋谱文件（$fail 个失败）。打开宝库即可看到。")
-        } else {
-            toast("上传失败或文件无法读取，请重试")
+        toast("正在导入 ${uris.size} 个文件…")
+        initScope.launch(Dispatchers.IO) {
+            var ok = 0
+            var fail = 0
+            var groups = 0
+            val cat = pendingUploadCategory
+            pendingUploadCategory = null
+            for (uri in uris) {
+                val r = try { uploadQipuToVault(uri, cat) } catch (e: Exception) { -1 }
+                if (r >= 0) { ok++; groups += r } else fail++
+            }
+            val g = groups
+            runOnUiThread {
+                if (ok > 0) {
+                    toast(
+                        if (g > 0) "已导入 $ok 个文件，其中大包拆成 $g 册（$fail 个失败）。打开宝库·我的上传即可看到。"
+                        else "已上传到宝库·我的上传 $ok 个棋谱文件（$fail 个失败）。打开宝库即可看到。"
+                    )
+                } else {
+                    toast("上传失败或文件无法读取，请重试")
+                }
+            }
         }
     }
 
-    /** 把单个文件读取并持久化到宝库「我的上传」目录；成功返回 true。 */
-    private fun uploadQipuToVault(uri: android.net.Uri): Boolean {
+    /** 把单个文件流式复制到宝库「我的上传」目录；成功返回拆出的册数（0=普通单本，-1=失败）。
+     *  ★ 不再 readBytes()：32 万文件、300 兆的包也只是 64KB 一块地搬，内存占用与文件大小无关。 */
+    private fun uploadQipuToVault(uri: android.net.Uri, category: String? = null): Int {
         return try {
-            val name = queryDisplayName(uri)?.substringBeforeLast('.')?.ifBlank { "upload_${System.currentTimeMillis()}" }
-                ?: "upload_${System.currentTimeMillis()}"
-            val ext = (queryDisplayName(uri)?.substringAfterLast('.', "")?.lowercase())?.let {
-                if (it.length in 1..6 && it.all(Char::isLetterOrDigit)) it else null
-            } ?: "cbl"
-            val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                ?: return false
-            com.pikafish.chess.qipu.QipuLibrary.persistUserUpload(this, "$name.$ext", bytes) != null
+            val display = queryDisplayName(uri) ?: "upload_${System.currentTimeMillis()}"
+            val base = display.substringBeforeLast('.')
+                .replace(Regex("[^\\w\\u4e00-\\u9fa5-]"), "_")
+                .ifBlank { "upload_${System.currentTimeMillis()}" }
+            val ext = display.substringAfterLast('.', "").lowercase().let {
+                if (it.length in 1..6 && it.all(Char::isLetterOrDigit)) it else "cbl"
+            }
+            val root = java.io.File(filesDir, com.pikafish.chess.qipu.QipuLibrary.USER_DIR).apply { mkdirs() }
+            // ★ 指定了分类就落到 qipu_user/<分类>/，宝库里就出现在那一类名下
+            val dir = if (category.isNullOrBlank()) root
+                      else java.io.File(root, com.pikafish.chess.qipu.QipuLibrary.catDirName(category)).apply { mkdirs() }
+            val target = java.io.File(dir, "$base.$ext")
+            val tmp = java.io.File(dir, "$base.$ext.part")
+            val ins = contentResolver.openInputStream(uri) ?: return -1
+            ins.use { input ->
+                java.io.FileOutputStream(tmp).use { output ->
+                    val buf = ByteArray(64 * 1024)
+                    while (true) {
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        output.write(buf, 0, n)
+                    }
+                }
+            }
+            if (target.exists()) target.delete()
+            if (!tmp.renameTo(target)) { tmp.copyTo(target, overwrite = true); tmp.delete() }
+            // 只有 ZIP 才需要"分册"：读中央目录建索引，几秒、几 MB 内存
+            val isZip = try {
+                java.io.FileInputStream(target).use { fis ->
+                    val h = ByteArray(4); val n = fis.read(h)
+                    n >= 4 && h[0] == 0x50.toByte() && h[1] == 0x4B.toByte() && h[2] == 3.toByte() && h[3] == 4.toByte()
+                }
+            } catch (e: Exception) { false }
+            if (isZip) com.pikafish.chess.qipu.QipuLibrary.buildCatalogForZip(target) else 0
         } catch (e: Exception) {
             android.util.Log.e(TAG, "uploadQipuToVault 异常", e)
-            false
+            -1
         }
     }
 

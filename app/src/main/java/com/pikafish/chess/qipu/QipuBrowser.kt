@@ -44,10 +44,14 @@ class QipuBrowser(
     private val onResumeJournal: ((String) -> Unit)? = null,
     private val onUserUpload: ((QipuBook) -> Unit)? = null,
     private val onLocalDoc: ((QipuBook) -> Unit)? = null,
-    private val onOpenReviewHistory: (() -> Unit)? = null
+    private val onOpenReviewHistory: (() -> Unit)? = null,
+    /** 某个分类下点「上传棋谱」时回调：参数是分类名 */
+    private val onUploadCategory: ((String) -> Unit)? = null
 ) {
     private var cats: List<QipuCategory> = emptyList()
     private var expandedCatIndex = -1  // 分类手风琴展开索引
+    private var bookPage = 0           // 书单分页（一页 60 册，避免几千册一次性建 View）
+    private val bookPageSize = 60
 
     // 当前正在浏览的【书棋谱列表页】
     private var detailCatIndex = -1
@@ -63,7 +67,8 @@ class QipuBrowser(
     private var dialog: Dialog? = null
 
     // 每本书的加载缓存（避免重复解码CBL）
-    private val bookGamesCache = HashMap<String, List<QipuGame>>()
+    private val bookGamesCache = LinkedHashMap<String, List<QipuGame>>()   // 只留最近 8 本，防看多了 OOM
+    private val bookGamesCacheMax = 8
     private var loadingBookFile: String? = null
 
     private val gold = 0xFFFFB300.toInt()      // 强调金色（恒亮，按钮/选框等"色块"通用）
@@ -158,6 +163,7 @@ class QipuBrowser(
             loadTheme()   // ★ 先读入持久化的纸张底色，再渲染
             cats = QipuLibrary.loadCategories(context)
             expandedCatIndex = -1
+            bookPage = 0
             detailCatIndex = -1; detailBook = null; detailGames = emptyList()
             renderCategoryList()
         } catch (e: Exception) {
@@ -272,13 +278,38 @@ class QipuBrowser(
                     orientation = LinearLayout.VERTICAL
                     setPadding(24.dp(), 0, 12.dp(), 4.dp())
                 }
-                cat.books.forEachIndexed { bookIndex, book ->
-                    bookList.addView(bookRow(catIndex, bookIndex, book))
+                // ★ 虚拟列表：一册一册地渲染。像「我的上传」里拆出来的两千多册，
+                //   整本铺出来会一次性建几千个 View，点一下卡半秒到几秒；这里一页 60 行，
+                //   翻页才建下一页的 View，十万册也一样秒开。
+                val total = cat.books.size
+                val pages = maxOf(1, (total + bookPageSize - 1) / bookPageSize)
+                val page = bookPage.coerceIn(0, pages - 1)
+                if (pages > 1) bookList.addView(bookPager(catIndex, page, pages, total))
+                val from = page * bookPageSize
+                val to = minOf(total, from + bookPageSize)
+                for (i in from until to) {
+                    bookList.addView(bookRow(catIndex, i, cat.books[i]))
                 }
                 listContainer.addView(bookList)
+                // ★ 每个内置分类都带一个"上传到本分类"，不再只能塞进「我的上传」
+                if (cat.name in com.pikafish.chess.qipu.QipuLibrary.BUILTIN_CATS && onUploadCategory != null) {
+                    bookList.addView(TextView(context).apply {
+                        text = "⬆ 上传棋谱到「${cat.name}」（支持 ZIP 包 / XQF / MXQ / CBL / CBR / PGN / TXT / UBB）"
+                        textSize = 13f; setTextColor(linkColor)
+                        setPadding(4.dp(), 10, 4.dp(), 12)
+                        setOnClickListener {
+                            dismissSilently()
+                            onUploadCategory.invoke(cat.name)
+                        }
+                    })
+                }
             }
         }
 
+        // ★ 后台还在建「本地文档」索引时给个明确提示：不是坏了，只是稍后再进来就全了
+        if (com.pikafish.chess.qipu.QipuLibrary.isDocsScanning()) {
+            listContainer.addView(subTitle("正在后台建立「本地文档」索引，稍后重新打开宝库即可看到全部（不影响下棋）"))
+        }
         // ★ 我的对局（本地存档：新开局时"保存到宝库"的续盘对局，可续盘/重命名/删除）
         //   实时预制位(DRAFT_ID)只是可靠性兜底，不在对外列表里展示
         val saved = GameJournal.listLog(context).count { it.stateJson != null && it.id != GameJournal.DRAFT_ID }
@@ -739,8 +770,7 @@ class QipuBrowser(
         }
         Thread {
             val games = try {
-                com.pikafish.chess.qipu.QipuLibrary.decodeGames(
-                    com.pikafish.chess.qipu.QipuLibrary.loadGamesBytes(context, hit.book), hit.book.name)
+                com.pikafish.chess.qipu.QipuLibrary.decodeBook(context, hit.book)
             } catch (e: Exception) { emptyList() }
             mainHandler.post {
                 // ① 二进制规整库/CBL上传：能逐局解码 → 精确打开命中的那一则（真能走、能快进）
@@ -774,9 +804,13 @@ class QipuBrowser(
 
     /** 为某本书建立轻量检索索引（分维度存文本与年份，不存整局），成功后缓存。 */
     private fun ensureBookIndex(catName: String, book: QipuBook): BookIdx? {
-        searchIndex[book.file]?.let { return it }
+        searchIndex[book.file + "|" + book.groupPrefix]?.let { return it }
         return try {
-            val raw = com.pikafish.chess.qipu.QipuLibrary.loadGamesBytes(context, book)
+            // ★ 分册书没有"整本字节"：直接按册解码（有上限，不会把整包读进内存）
+            val raw = if (book.groupPrefix.isBlank()) {
+                try { com.pikafish.chess.qipu.QipuLibrary.loadGamesBytes(context, book) }
+                catch (e: Exception) { null }
+            } else null
             // ★ 文件名（含子目录基名，本地文档常放在 vault_games/ 下）——所有维度都并入，
             //   专治“按文件名搜不到本地文档/新上传的 CBL”。文件短名 += 路径基名，双保险。
             val nameBase = book.name.trim()
@@ -785,19 +819,31 @@ class QipuBrowser(
             val fileTag = norm(listOf(nameBase, short, fileBase).joinToString(" "))
             if (fileTag.length < 2 && book.name.isNotEmpty()) { /* 空保护 */ }
 
-            // ★ 成批 FEN 习题集（如「5-10步缓杀 50000题」）：一册可能几十万题，绝不能逐题建索引
-            //   （那会把几十万条索引进内存，搜索时必卡死/OOM）。只按“分类+书名+文件名”建一条，
-            //   保证按书名可搜；题目本体按序号在目录里直接翻页浏览。
-            if (com.pikafish.chess.qipu.QipuLibrary.isFenBatch(raw)) {
+            // ★ 分册（大包拆出来的一册）：**绝不为它逐局解码建索引**。
+            //   2,000 多册 × 每册上千局，全解一遍就是几百万次解析，搜索会卡到没法用。
+            //   这里只按「分类 + 书名 + 文件名」建一条：按书名能搜到，点进去再逐局翻。
+            if (book.groupPrefix.isNotBlank()) {
                 val bookTag = norm("$catName ${book.name}") + " $fileTag"
                 val idx = BookIdx(catName, book, listOf(
                     GameIdx(-1, book.name, bookTag, bookTag, bookTag, bookTag, emptySet())))
-                searchIndex[book.file] = idx
+                searchIndex[book.file + "|" + book.groupPrefix] = idx
+                return idx
+            }
+
+            // ★ 成批 FEN 习题集（如「5-10步缓杀 50000题」）：一册可能几十万题，绝不能逐题建索引
+            //   （那会把几十万条索引进内存，搜索时必卡死/OOM）。只按“分类+书名+文件名”建一条，
+            //   保证按书名可搜；题目本体按序号在目录里直接翻页浏览。
+            if (raw != null && com.pikafish.chess.qipu.QipuLibrary.isFenBatch(raw)) {
+                val bookTag = norm("$catName ${book.name}") + " $fileTag"
+                val idx = BookIdx(catName, book, listOf(
+                    GameIdx(-1, book.name, bookTag, bookTag, bookTag, bookTag, emptySet())))
+                searchIndex[book.file + "|" + book.groupPrefix] = idx
                 return idx
             }
 
             // ① 二进制规整库（内置 CBL，以及用户上传的 CBL/XQF 等）→ 逐局解码建索引
-            val games = com.pikafish.chess.qipu.QipuLibrary.decodeGames(raw, book.name)
+            val games = if (raw != null) com.pikafish.chess.qipu.QipuLibrary.decodeGames(raw, book.name)
+                        else com.pikafish.chess.qipu.QipuLibrary.decodeBook(context, book)
             if (games.isNotEmpty()) {
                 val entries = games.mapIndexed { i, g ->
                     // ★ 只取头部元信息：归档懒局在此绝不解着法，否则一个几千局的压缩包
@@ -817,12 +863,12 @@ class QipuBrowser(
                         i, g.title(), text, persons, norm(bookNameC) + " $fileTag", layout, years)
                 }
                 val idx = BookIdx(catName, book, entries)
-                searchIndex[book.file] = idx
+                searchIndex[book.file + "|" + book.groupPrefix] = idx
                 return idx
             }
             // ② 解码为空且是文本棋谱（用户上传 / HHXQ 本地文档：PGN/中文记谱/ICCS/FEN...）→ 按文本抽取元信息建索引。
             //    ★ 每条的检索文本都并入“分类+书名+文件名”，保证按文件名也能搜到本地文档。
-            if (book.isUserUpload || book.isLocalDoc) {
+            if (raw != null && (book.isUserUpload || book.isLocalDoc)) {
                 val metas = com.pikafish.chess.qipu.QipuLibrary.extractTextGameMetas(raw, book.name)
                 if (metas.isNotEmpty()) {
                     val bookTag = norm("$catName ${book.name}") + " $fileTag"
@@ -835,7 +881,7 @@ class QipuBrowser(
                             m.layout, m.years)
                     }
                     val idx = BookIdx(catName, book, entries)
-                    searchIndex[book.file] = idx
+                    searchIndex[book.file + "|" + book.groupPrefix] = idx
                     return idx
                 }
             }
@@ -843,7 +889,7 @@ class QipuBrowser(
             //    至少按“分类+书名+文件名”可搜；若原文可解出文本，再把全文归一并入，扩大命中范围。
             //    ★ 这样本地文档必可按文件名搜到，名手_王天一 这类嵌入书也必可按书名搜到。
             //    ★ 用容错解码（UTF-8→GB18030）：GBK 棋谱的正文也能被搜到，不再只认 UTF-8。
-            val c = try { com.pikafish.chess.qipu.QipuLibrary.decodeText(raw) } catch (e: Exception) { null }
+            val c = try { raw?.let { com.pikafish.chess.qipu.QipuLibrary.decodeText(it) } } catch (e: Exception) { null }
             val bookTag = norm("$catName ${book.name}") + " $fileTag"
             val rawNorm = c?.let { norm(it) }.orEmpty()
             val text = if (rawNorm.length >= 2) "$bookTag $rawNorm" else bookTag
@@ -854,7 +900,7 @@ class QipuBrowser(
                 val idx = BookIdx(catName, book, listOf(
                     com.pikafish.chess.qipu.QipuBrowser.GameIdx(
                         -1, book.name, text, text, bookTag, text, ys)))
-                searchIndex[book.file] = idx
+                searchIndex[book.file + "|" + book.groupPrefix] = idx
                 return idx
             }
             null
@@ -1719,7 +1765,59 @@ class QipuBrowser(
 
     private fun toggleCategory(index: Int) {
         expandedCatIndex = if (expandedCatIndex == index) -1 else index
+        bookPage = 0
         renderCategoryList()
+    }
+
+    /** 书单分页条：一页 60 册，◀/▶ 翻页。 */
+    private fun bookPager(catIndex: Int, page: Int, pages: Int, total: Int): View {
+        val bar = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(4.dp(), 4, 4.dp(), 6)
+        }
+        fun btn(text: String, enabled: Boolean, delta: Int) = TextView(context).apply {
+            this.text = text; textSize = 13f
+            setTextColor(if (enabled) linkColor else textSub)
+            setPadding(10.dp(), 6, 10.dp(), 6)
+            isEnabled = enabled
+            setOnClickListener {
+                if (!enabled) return@setOnClickListener
+                bookPage = (page + delta).coerceIn(0, pages - 1)
+                renderCategoryList()
+            }
+            bar.addView(this)
+        }
+        btn("◀ 上一页", page > 0, -1)
+        bar.addView(TextView(context).apply {
+            text = " 第 ${page + 1}/$pages 页 · 共 $total 册 "
+            textSize = 12f; setTextColor(textSub)
+        })
+        btn("下一页 ▶", page < pages - 1, +1)
+        return bar
+    }
+
+    /** 占位书：说明能导入什么格式，并给出上传入口。 */
+    private fun showPlaceholder(book: QipuBook) {
+        try {
+            val catName = cats.firstOrNull { c -> c.books.any { it === book || it.file == book.file } }?.name ?: ""
+            val msg = "这一分类没有随包附带棋谱，请自行补充。\n\n" +
+                "支持的格式：\n" +
+                "· ZIP 压缩包（包内 XQF / MXQ / CBL / CBR / PGN / TXT / UBB 均可，自动分册）\n" +
+                "· XQF（象棋演播室）、MXQ（象棋巫师）、CBL / CBR（象棋桥）\n" +
+                "· PGN、中文记谱 TXT、东萍 UBB、FEN 题库\n\n" +
+                "点下面的按钮，选好文件即归入「$catName」。"
+            val d = android.app.AlertDialog.Builder(context)
+                .setTitle("开发者未提供 · 请自行补充")
+                .setMessage(msg)
+                .setPositiveButton("上传到本分类") { dd, _ ->
+                    dd.dismiss()
+                    if (catName.isNotEmpty()) onUploadCategory?.invoke(catName) else toast("请先返回分类列表再上传")
+                }
+                .setNegativeButton("知道了", null)
+                .create()
+            d.show()
+        } catch (e: Exception) { toast("开发者未提供，请自行补充棋谱") }
     }
 
     // ════════════════════════ 书行 → 打开本书棋谱列表 ════════════════════════
@@ -2041,7 +2139,7 @@ class QipuBrowser(
             confirmLabel = "确认删除"
         ) {
             val ok = try { QipuLibrary.deleteBook(context, book) } catch (e: Exception) { false }
-            try { QipuLibrary.refreshLocalDocsCache() } catch (e: Exception) { /* 忽略 */ }
+            try { QipuLibrary.refreshLocalDocsCache(context) } catch (e: Exception) { /* 忽略 */ }
             if (ok) toast("已删除") else toast("删除失败")
             reloadCats()
         }
@@ -2323,11 +2421,14 @@ class QipuBrowser(
         SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINESE).format(java.util.Date(ms))
 
     private fun openBook(catIndex: Int, bookIndex: Int, book: QipuBook) {
+        // ★ 占位书：这一分类没有随包内容，只给格式说明 + 上传入口
+        if (book.file == "__none__") { showPlaceholder(book); return }
+        val cacheKey = book.file + "|" + book.groupPrefix
         detailPage = 0
-        val cached = bookGamesCache[book.file]
+        val cached = bookGamesCache[cacheKey]
         if (cached != null && cached.isNotEmpty()) { showBookDetail(catIndex, book, cached); return }
-        if (loadingBookFile == book.file) return
-        loadingBookFile = book.file
+        if (loadingBookFile == cacheKey) return
+        loadingBookFile = cacheKey
         toast("正在载入《${book.name}》…")
         QipuLibrary.Loader(context, book) { result ->
             loadingBookFile = null
@@ -2341,7 +2442,12 @@ class QipuBrowser(
                 }
                 return@Loader
             }
-            bookGamesCache[book.file] = result
+            bookGamesCache[cacheKey] = result
+            // ★ 只留最近 8 本，免得大包翻多了把解出来的几千局都堆在内存里
+            while (bookGamesCache.size > bookGamesCacheMax) {
+                val k = bookGamesCache.keys.firstOrNull() ?: break
+                bookGamesCache.remove(k)
+            }
             showBookDetail(catIndex, book, result)
         }.execute()
     }

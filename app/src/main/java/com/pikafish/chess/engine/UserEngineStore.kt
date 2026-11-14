@@ -45,7 +45,8 @@ object UserEngineStore {
     private const val DIR_NAME = "engines"
     private const val LEGACY_DIR = "user_engine"
     private const val MIN_NNUE_BYTES = 1_000_000L
-    private const val MAX_ENGINE_BYTES = 40L * 1024L * 1024L   // 引擎二进制体积上限（防误吞大文件）
+    /** ★ 单个条目的体积上限：老版本是 40MB，把"内嵌 NNUE 的一体化引擎"（常见 50~200MB）全挡在外面了 */
+    private const val MAX_ENTRY_BYTES = 400L * 1024L * 1024L
     private const val PROBE_TIMEOUT_MS = 8000L
 
     /** 明确当「说明/杂项」跳过的扩展名；其余文件一律读出来验魔数，不靠扩展名猜（宁可多试不放过） */
@@ -69,9 +70,24 @@ object UserEngineStore {
         val addedAt: Long
     ) {
         val isBuiltin: Boolean get() = id == BUILTIN_ID
-        /** 界面展示名：内置=皮卡鱼；外置=认识的说中文，不认识的说英文原名 */
+        /**
+         * 界面展示名：内置=皮卡鱼；外置=**用文件名做名字**。
+         *
+         * ★ 为什么不用 idName：同一款引擎的不同「模式」（比如幻神的“剃光头”和“正常最佳招法”）
+         *   自报的 id name 完全一样，用 idName 命名会变成两条一模一样的名字、甚至被当成同一台合并掉。
+         *   文件名才是真正能区分它们的信息。
+         */
         val displayName: String
-            get() = if (isBuiltin) "皮卡鱼" else EngineIdentity.displayNameOf(idName, engineFileName)
+            get() {
+                if (isBuiltin) return "皮卡鱼"
+                val raw = engineFileName.substringBeforeLast('.')
+                val low = raw.lowercase()
+                val cut = listOf("-android", "_android").map { low.indexOf(it) }
+                    .filter { it > 0 }.minOrNull()
+                val stem = (if (cut != null) raw.substring(0, cut) else raw).trim()
+                if (stem.length in 2..40) return stem
+                return EngineIdentity.displayNameOf(idName, engineFileName)
+            }
     }
 
     data class InstallResult(
@@ -294,8 +310,14 @@ object UserEngineStore {
 
             // ★★★ 先认容器格式：RAR / 7z 无法用 ZIP 流解，直接给一句明白话，别让人猜。★★★
             val magic = appCtx.contentResolver.openInputStream(uri)?.use { ins ->
-                val head = ByteArray(8)
-                val n = ins.read(head)
+                // ★ 读 64 字节：ELF 的 e_machine 在偏移 18，只读 8 字节会被判成 "other"（曾因此把 arm64 误判为 x86）
+                val head = ByteArray(64)
+                var n = 0
+                while (n < head.size) {
+                    val r = ins.read(head, n, head.size - n)
+                    if (r <= 0) break
+                    n += r
+                }
                 if (n >= 4) head.copyOf(n) else null
             }
             if (magic != null && magic.size >= 4 &&
@@ -319,7 +341,26 @@ object UserEngineStore {
                 return InstallResult(false, "这是 7z 压缩包，安卓端不能直接解。请先转成 ZIP 再传。")
             }
 
-            appCtx.contentResolver.openInputStream(uri)?.use { raw ->
+            // ★★ 单文件引擎：直接选中一个 Android 可执行文件（没有 zip 外壳）也照样能装。
+            //   以前这里一律当 ZIP 解，所以"裸二进制"必然导入失败。
+            val m = magic ?: ByteArray(0)
+            val singleElf = m.size >= 4 && isElf(m) && elfAbi(m).let { it == "arm64" || it == "arm32" }
+            if (singleElf) {
+                val base = queryDisplayName(appCtx, uri).ifBlank { "engine-${System.currentTimeMillis()}" }
+                val target = File(tmp, sanitize(base))
+                try {
+                    appCtx.contentResolver.openInputStream(uri)?.use { ins ->
+                        FileOutputStream(target).use { out -> ins.copyTo(out, 64 * 1024) }
+                    } ?: return InstallResult(false, "无法读取所选文件")
+                    target.setReadable(true, false)
+                    target.setExecutable(true, false)
+                    engineFiles.add(target)
+                    if (elfAbi(m) == "arm32") engine32Arm = true
+                    Log.i(TAG, "单文件引擎：$base（${elfAbi(m)}，${EngineIdentity.humanSize(target.length())}）")
+                } catch (e: Exception) {
+                    return InstallResult(false, "写出引擎失败：${e.message}")
+                }
+            } else appCtx.contentResolver.openInputStream(uri)?.use { raw ->
                 ZipInputStream(raw).use { zis ->
                     var entry = zis.nextEntry
                     while (entry != null) {
@@ -345,47 +386,62 @@ object UserEngineStore {
                                     Log.w(TAG, "解压权重失败: $base", e)
                                 }
                             } else {
-                                // ② 其余文件一律读出来验魔数（不看扩展名——"张冠李戴"的名字也照收）：
-                                //    ELF            → 引擎候选（最大者胜）
-                                //    非 ELF 且够大   → 权重候选（最大者胜），绝不悄悄让位给内置权重
-                                val bytes = readEntryCapped(zis, MAX_ENGINE_BYTES)
-                                if (bytes.isNotEmpty() && isElf(bytes)) {
-                                    // ★★★ 认 ELF 还要认 CPU 架构：安卓只跑 ARM。★★★
-                                    //   之前的毛病：只要是 ELF 就收，x86/x86_64 的电脑版引擎也照收，
-                                    //   装进去后 exec 必然失败（exec format error），引擎等于没起来，
-                                    //   界面却显示"已装上"——随后只能靠云库/兜底出招，走出"炮打马"那种怪棋。
-                                    when (elfAbi(bytes)) {
+                                // ② 其余条目：先嗅 4 字节定类型，再**流式落盘**。
+                                //    ★ 以前是 readEntryCapped(40MB) 整块读进内存，106MB 的
+                                //    「内嵌 NNUE 一体化引擎」直接被判成"超上限"丢掉 —— 这正是
+                                //    「幻神引擎装了没反应」的原因。现在按类型分流、边读边写，
+                                //    内存占用恒定 64KB，多大都不怕。
+                                val head4 = ByteArray(64)
+                                var hn = 0
+                                while (hn < head4.size) {
+                                    val n = zis.read(head4, hn, head4.size - hn)
+                                    if (n <= 0) break
+                                    hn += n
+                                }
+                                if (hn <= 0) { try { zis.closeEntry() } catch (_: Exception) {}; entry = zis.nextEntry; continue }
+                                val target = File(tmp, sanitize(base))
+                                var total = 0L
+                                var overflow = false
+                                try {
+                                    FileOutputStream(target).use { out ->
+                                        out.write(head4, 0, hn); total = hn.toLong()
+                                        val buf = ByteArray(64 * 1024)
+                                        while (true) {
+                                            val n = zis.read(buf)
+                                            if (n <= 0) break
+                                            total += n
+                                            if (total > MAX_ENTRY_BYTES) { overflow = true; break }
+                                            out.write(buf, 0, n)
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    Log.w(TAG, "解出条目失败: $base", e)
+                                    overflow = true
+                                }
+                                if (overflow || total <= 0) { target.delete() }
+                                else if (isElf(head4)) {
+                                    // ★ 认 ELF 还要认 CPU 架构：安卓只跑 ARM。
+                                    when (elfAbi(head4)) {
                                         "arm64", "arm32" -> {
-                                            val target = File(tmp, sanitize(base))
-                                            try {
-                                                FileOutputStream(target).use { it.write(bytes) }
-                                                target.setReadable(true, false)
-                                                target.setExecutable(true, false)
-                                                engineFiles.add(target)
-                                                if (bytes.size.toLong() > engineBytes) engineBytes = bytes.size.toLong()
-                                                if (elfAbi(bytes) == "arm32") engine32Arm = true
-                                                Log.i(TAG, "引擎候选：$base（${elfAbi(bytes)}，" +
-                                                    "${EngineIdentity.humanSize(target.length())}）")
-                                            } catch (e: Exception) {
-                                                Log.w(TAG, "写出引擎失败: $base", e)
-                                            }
+                                            target.setReadable(true, false)
+                                            target.setExecutable(true, false)
+                                            engineFiles.add(target)
+                                            if (total > engineBytes) engineBytes = total
+                                            if (elfAbi(head4) == "arm32") engine32Arm = true
+                                            Log.i(TAG, "引擎候选：$base（${elfAbi(head4)}，" +
+                                                "${EngineIdentity.humanSize(target.length())}）")
                                         }
-                                        else -> x86Engines++
+                                        else -> { target.delete(); x86Engines++ }
                                     }
-                                } else if (bytes.isNotEmpty() && isWindowsPe(bytes)) {
+                                } else if (isWindowsPe(head4)) {
                                     // PC 的 .exe / .dll：安卓永远跑不了，只记账、不落盘
-                                    pcEngines++
-                                } else if (bytes.size >= MIN_NNUE_BYTES) {
+                                    target.delete(); pcEngines++
+                                } else if (total >= MIN_NNUE_BYTES) {
                                     val prev = nnueFile
-                                    if (prev == null || bytes.size.toLong() > prev.length()) {
-                                        val target = File(tmp, sanitize(base))
-                                        try {
-                                            FileOutputStream(target).use { it.write(bytes) }
-                                            nnueFile = target
-                                        } catch (e: Exception) {
-                                            Log.w(TAG, "写出权重失败: $base", e)
-                                        }
-                                    }
+                                    if (prev == null || total > prev.length()) nnueFile = target
+                                    else target.delete()
+                                } else {
+                                    target.delete()
                                 }
                             }
                         }
@@ -610,9 +666,11 @@ object UserEngineStore {
             val seed = idName.ifBlank { pkg.ifBlank { eng.name } }
             var slug = sanitize(seed).lowercase().ifBlank { "engine" }
             val existing = readEntries(appCtx)
+            // ★ 去重只按"同一个文件"（文件名 + 字节数都一样）算重复；
+            //   不能再按 idName 去重 —— 同一引擎的不同模式（剃光头 / 正常）自报的 id name 相同，
+            //   旧逻辑会把先装的那台删掉，于是列表里永远只剩一台。
             val clash = existing.firstOrNull {
-                it.dirName.equals(slug, ignoreCase = true) ||
-                    (idName.isNotBlank() && it.idName.equals(idName, ignoreCase = true))
+                it.engineFileName == eng.name && it.engineSize == eng.length()
             }
             if (clash != null) {
                 try { File(root, clash.dirName).deleteRecursively() } catch (_: Exception) {}

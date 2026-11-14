@@ -28,9 +28,9 @@ class SoundManager {
         private const val DEF_BGM_VOL = 70
 
         // ── BGM 资源定义（三个直接选项，全可见，次序对齐） ──
-        // 音乐1=bg.mp3(原创bgm) 音乐2=bgm2.ogg(李诗然) 音乐3=bgm1.ogg(葬花吟·5.66MB OGG)
+        // 音乐1/2/3 均为本项目原创合成（纯正弦/拨弦/噪声，无任何第三方曲目或录音）
         val BGM_RES = arrayOf("snd/bg.mp3", "snd/bgm2.ogg", "snd/bgm1.ogg")
-        val BGM_NAMES = arrayOf("音乐1", "音乐2", "音乐3")
+        val BGM_NAMES = arrayOf("静夜", "空山", "寒江")
 
         // ── 常驻背景音乐 ──
         private var bgmPlayer: MediaPlayer? = null

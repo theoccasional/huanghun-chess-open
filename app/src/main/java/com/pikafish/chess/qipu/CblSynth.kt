@@ -173,7 +173,7 @@ object CblSynth {
         for ((ld, uu) in combos) {
             try {
                 val book = QipuBook(name = bookName, file = file, rawSize = 0, isUserUpload = uu, isLocalDoc = ld)
-                val games = QipuLibrary.decodeGames(QipuLibrary.loadGamesBytes(context, book), bookName)
+                val games = QipuLibrary.decodeBook(context, book)
                 if (games.isNotEmpty()) { bookCache[file] = games; return games }
             } catch (e: Exception) { /* 换下一种来源再试 */ }
         }

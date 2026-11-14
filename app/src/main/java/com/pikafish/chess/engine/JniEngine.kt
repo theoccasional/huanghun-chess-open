@@ -194,6 +194,21 @@ class JniEngine(private val context: Context) {
                     return null
                 }
             }
+            // ★★ 外置引擎自带网络（例如把 NNUE 直接编进二进制的"一体化引擎"）：
+            //   这时**绝不能**再下发 App 内置权重把它覆盖掉——网络版本不匹配会直接算不出分。
+            //   两种情况都算"外置且没带独立权重"：PK 指定了二进制但没有 .nnue；主对弈采用的外置引擎没有 .nnue。
+            val externalNoWeight =
+                (forcedEngineFile != null && forcedNnueFile == null) ||
+                    (!isolated && forcedEngineFile == null &&
+                        UserEngineStore.isActive(context) && UserEngineStore.nnueFile(context) == null)
+            if (externalNoWeight) {
+                nnuePath = ""
+                EngineIdentity.weightFileName = "（引擎内嵌）"
+                EngineIdentity.weightPath = ""
+                EngineIdentity.weightSize = 0L
+                Log.i(TAG, "外置引擎自带权重，跳过内置 NNUE")
+                return null
+            }
             // ★★ 全局优先：用户装了外置引擎包 → 用它自带的 NNUE 权重（主对弈/解惑/复盘…全走这里）
             //   隔离模式（PK）跳过这层，未显式指定权重时直接用 App 内置权重，绝不借用"采用"那台。
             if (!isolated) UserEngineStore.nnueFile(context)?.let { ext ->
@@ -394,7 +409,7 @@ class JniEngine(private val context: Context) {
             EngineIdentity.absorbUci(uciLines)
 
             // ★ 异地引擎：权重由辎重包端自行加载，本机不发送 EvalFile（本机并无该文件）
-            if (remoteEndpoint == null) sendCommand("setoption name EvalFile value $nnuePath")
+            if (remoteEndpoint == null && nnuePath.isNotBlank()) sendCommand("setoption name EvalFile value $nnuePath")
             sendCommand("setoption name Threads value $threadCount")
             sendCommand("setoption name Hash value $hashSize")
             sendCommand("setoption name MultiPV value 1")
@@ -433,7 +448,7 @@ class JniEngine(private val context: Context) {
 
             // 设置 NNUE
             // ★ 异地引擎：权重由辎重包端自行加载，本机不发送 EvalFile（本机并无该文件）
-            if (remoteEndpoint == null) sendCommand("setoption name EvalFile value $nnuePath")
+            if (remoteEndpoint == null && nnuePath.isNotBlank()) sendCommand("setoption name EvalFile value $nnuePath")
             sendCommand("setoption name Threads value $threadCount")
             sendCommand("setoption name Hash value $hashSize")
             sendCommand("setoption name MultiPV value 1")
