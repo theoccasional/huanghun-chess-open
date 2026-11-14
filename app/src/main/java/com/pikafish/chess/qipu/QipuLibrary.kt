@@ -239,7 +239,13 @@ object QipuLibrary {
             return if (book.isUserUpload) decodeZipGroup(context, book.file, gp, book.name)
             else decodeLocalDir(gp, book.name)
         }
-        return decodeGames(loadGamesBytes(context, book), book.name)
+        val games = decodeGames(loadGamesBytes(context, book), book.name)
+        // ★ 内置书（随包的古谱/赛事/名手）：把注解、开场白、评述全部去掉 —— 一个标点都不带，
+        //   只保留书名、双方、赛果、着法与变招。用户自己导入的书不动，注解照常显示。
+        if (book.isUserUpload || book.isLocalDoc) return games
+        return games.map { g ->
+            QipuGame(g.meta(), fullLoader = { g.cblGame.withoutComments() }, isFenPuzzle = g.isFenPuzzle)
+        }
     }
 
     /** 解一个上传压缩包里的某一册（prefix 目录下的全部条目）。 */

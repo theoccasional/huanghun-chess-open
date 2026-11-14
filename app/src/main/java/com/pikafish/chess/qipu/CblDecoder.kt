@@ -2413,3 +2413,13 @@ object CblDecoder {
         return a
     }
 }
+
+/** ★ 去掉全部注解 / 开场白 / 评述，只留题名、双方、赛果、着法与变招（内置公版古谱用）。 */
+fun CblDecoder.CblGame.withoutComments(): CblDecoder.CblGame = CblDecoder.CblGame(
+    index = index, event = event, site = site, date = date,
+    red = red, black = black, result = result,
+    fenBoard = fenBoard, moversBlack = moversBlack, movesUci = movesUci,
+    introComment = "", endComment = "",
+    midComments = emptyList(), moveComments = emptyMap(),
+    commentaryBlocks = emptyList(), variationsUci = variationsUci
+)
