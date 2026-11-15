@@ -17,3 +17,7 @@ Thumbs.db
 
 # ── 私有识别模型（按 assets/licenses/THIRD_PARTY.md 口径，不随仓库分发）──
 app/src/main/assets/models/
+*.idsig
+*.jks
+*.keystore
+local.properties
