@@ -74,9 +74,10 @@ android {
         create("release") {
             if (keystoreFile.exists()) {
                 storeFile = keystoreFile
-                storePassword = System.getenv("HHXQ_STORE_PASSWORD") ?: "pikafish123"
-                keyAlias = System.getenv("HHXQ_KEY_ALIAS") ?: "pikafish"
-                keyPassword = System.getenv("HHXQ_KEY_PASSWORD") ?: "pikafish123"
+                // ★ 签名口令只从环境变量读取，不写任何硬编码默认值（避免公开仓库泄漏口令）
+                storePassword = System.getenv("HHXQ_STORE_PASSWORD") ?: error("HHXQ_STORE_PASSWORD 未设置，请用环境变量提供签名口令")
+                keyAlias = System.getenv("HHXQ_KEY_ALIAS") ?: "release"
+                keyPassword = System.getenv("HHXQ_KEY_PASSWORD") ?: error("HHXQ_KEY_PASSWORD 未设置，请用环境变量提供签名口令")
             }
         }
     }
