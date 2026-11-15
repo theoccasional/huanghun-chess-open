@@ -47,7 +47,7 @@
 | `vschess`（Weisi Chess Player）及音效 | **LGPL-3.0**（上游元数据已核）；包内保留版权头与 `LGPL-3.0.txt` | 低（未修改发行文件） | 保留；上游源码 https://github.com/FastLight126/vschess ；如修改需提供修改后源码 |
 | jQuery / ML Kit / ONNX Runtime / AndroidX 等 | MIT / Apache-2.0 / Google SDK 条款 | 低 | 保留许可证文本与 NOTICE |
 | 字体 | 未发现独立第三方字体文件 | 低 | 使用系统字体 |
-| 背景图 `bg_bamboo.jpg`、`bg_porcelain.jpg` | AI 生成纹理 | 棋盘皮肤纹理为 AI 生成原创；生成器自动水印“AI生成”标签已去除（保留生成记录）；商用/再分发按生成工具条款执行 | 低 | 保留；台账状态：复核通过 |
+| 背景图 `bg_bamboo.jpg`、`bg_porcelain.jpg` | 官方同源纹理 | 棋盘皮肤纹理为官方 2.9.308（307 同源）纹理：整幅竹林摄影 / 青花团花纹样，无棋盘格等叠加图案；恢复自开源仓库历史提交 | 低 | 保留；台账状态：已恢复原版 |
 
 ## 四、公开分发前检查清单
 
@@ -59,4 +59,4 @@
 - [x] `vschess` 许可已核为 LGPL-3.0，上游源码公开，随包保留版权头与许可证正文。
 - [x] Pikafish/NNUE 范围复核：公开版免费、无广告、无会员，未作商业使用；如后续商业化须另取授权。
 - [x] 生成 `LICENSES/NOTICE` 最终清单（根目录 `NOTICE.md`；GPL/LGPL/NNUE/第三方已分别落盘，发布页附源码与许可链接）。
-- [x] 背景图 `bg_bamboo.jpg` / `bg_porcelain.jpg` 为 AI 生成的原创纹理，生成器自动“AI生成”水印标签已去除。
+- [x] 背景图 `bg_bamboo.jpg` / `bg_porcelain.jpg` 恢复为官方 2.9.308（307 同源）原版纹理（整幅竹林 / 青花团花，无棋盘格图案）。
