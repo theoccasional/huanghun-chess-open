@@ -440,11 +440,11 @@ object GameJournal {
         onJump: ((LogEntry) -> Unit)? = null
     ): android.app.Dialog? {
         return try {
-            val gold = 0xFFFFB300.toInt()
-            val dark = 0xFF2B2015.toInt()
-            val panelBg = 0xFF3A2C1E.toInt()
-            val textMain = 0xFFF0E6D2.toInt()   // ★ 粉白色
-            val textSub = 0xFFC0B49A.toInt()
+            val gold = 0xFFC8963E.toInt()
+            val dark = 0xFF1B1E23.toInt()
+            val panelBg = 0xFF1B1E23.toInt()
+            val textMain = 0xFFE7ECEA.toInt()   // ★ 粉白色
+            val textSub = 0xFFA7B0AC.toInt()
             val translucent = 0xCC2B2015.toInt()
 
             val d = android.app.Dialog(c)
@@ -612,9 +612,9 @@ object GameJournal {
         onSave: (String, Set<String>, String, Boolean) -> Unit
     ): android.app.Dialog? {
         return try {
-            val gold = 0xFFFFB300.toInt(); val dark = 0xFF2B2015.toInt()
-            val panelBg = 0xFF3A2C1E.toInt(); val textMain = 0xFFF0E6D2.toInt()
-            val textSub = 0xFFC0B49A.toInt()
+            val gold = 0xFFC8963E.toInt(); val dark = 0xFF1B1E23.toInt()
+            val panelBg = 0xFF1B1E23.toInt(); val textMain = 0xFFE7ECEA.toInt()
+            val textSub = 0xFFA7B0AC.toInt()
             val d = android.app.Dialog(c)
             d.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
             d.setCancelable(true); d.setCanceledOnTouchOutside(true)
@@ -819,7 +819,7 @@ object GameJournal {
                 val row = android.widget.LinearLayout(c)
                 row.orientation = android.widget.LinearLayout.HORIZONTAL
                 row.gravity = android.view.Gravity.CENTER_VERTICAL
-                row.setBackgroundColor(if (e.reading.isNotBlank() || rec.tags.isNotEmpty()) 0xFF2B2015.toInt() else panelBg)
+                row.setBackgroundColor(if (e.reading.isNotBlank() || rec.tags.isNotEmpty()) 0xFF1B1E23.toInt() else panelBg)
                 row.setPadding(6, 6, 6, 6)
                 val rlp = android.widget.LinearLayout.LayoutParams(
                     android.widget.LinearLayout.LayoutParams.MATCH_PARENT,

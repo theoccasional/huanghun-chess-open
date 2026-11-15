@@ -60,15 +60,15 @@ object GlobalBackdrop {
     /** 落盘图片的最长边上限（够铺满任何手机屏，又不至于把内存顶爆）。 */
     private const val MAX_IMAGE_DIM = 2048
 
-    /** 薄纱的"静默"默认色：粉蓝（背谱、解惑的纸面，未去改色时就是这个粉蓝）。 */
-    const val DEFAULT_COLOR = 0xFFA8C7E6.toInt()
+    /** 默认底色：雾白中性纸面（不再用旧的粉蓝）。 */
+    const val DEFAULT_COLOR = 0xFFF4F3EF.toInt()
 
     /** 时间颜色 = 跟随棋线色（默认档）。 */
     const val TIME_FOLLOW_LINE = -1
 
     /** 时间颜色快捷预设（调色板下方那一排小色块）。 */
     private val TIME_PRESETS = listOf(
-        "墨黑" to "#1A1A1A", "纯白" to "#FFFFFF", "朱砂" to "#C62828", "金黄" to "#FFB300",
+        "墨黑" to "#1A1A1A", "纯白" to "#FFFFFF", "朱砂" to "#C62828", "香槟金" to "#C8963E",
         "深蓝" to "#1A237E", "墨绿" to "#1B5E20", "湖蓝" to "#0277BD", "棕褐" to "#5D4037"
     )
 
@@ -155,23 +155,22 @@ object GlobalBackdrop {
 
     // ─────────────────────────── 前景色 ───────────────────────────
 
-    /** 根据底色明暗返回适合写在上面、对比强烈的前景色（暗底纯白 / 亮底深褐）。 */
+    /** 根据底色明暗返回适合写在上面、对比强烈的前景色（暗底纯白 / 亮底墨色）。 */
     fun foreground(c: Context, argb: Int): Int {
         val r = (argb shr 16) and 0xFF; val g = (argb shr 8) and 0xFF; val b = argb and 0xFF
-        return if (0.299 * r + 0.587 * g + 0.114 * b > 140) Color.parseColor("#2A2418")
+        return if (0.299 * r + 0.587 * g + 0.114 * b > 140) Color.parseColor("#1B1E23")
         else Color.parseColor("#FFFFFF")
     }
 
     /** 当前全局背景（纯色档）上可读的前景色。 */
     fun foreground(c: Context): Int = foreground(c, currentColor(c))
 
-    // ─────────────────────────── 主界面菜单底色（原样保留） ───────────────────────────
+    // ─────────────────────────── 主界面菜单底色（与 menuBgColors 同步） ───────────────────────────
 
     private val MENU_BG_HEX = listOf(
-        "#FFF3C4", "#FFF8E1", "#FFFDE7", "#FFF59D", "#FFF3C4", "#FFE6BC",
-        "#FFCCBC", "#FFE0B2", "#FFF176", "#FFCC80", "#FFB74D", "#FFEBEE",
-        "#DCEDC8", "#C8EAE4", "#B2EBF2", "#BEE7FC", "#B2DFDB", "#EDE7F6",
-        "#ECEFF1", "#F5F5F5", "#E0E0E0", "#3E2723", "#1B3A2A", "#1A2A5C"
+        "#FFFFFF", "#F3F4F1", "#E8F0EC", "#FAF9F5", "#E6EAE6", "#DCEBE5",
+        "#D7E5E1", "#E3EDF5", "#ECE8F2", "#ECEFF1", "#F5F5F5",
+        "#2A2E33", "#1B3A2A", "#1A2A5C"
     )
 
     fun menuBackgroundColor(c: Context): Int {

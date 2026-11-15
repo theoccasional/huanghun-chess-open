@@ -71,9 +71,9 @@ class QipuBrowser(
     private val bookGamesCacheMax = 8
     private var loadingBookFile: String? = null
 
-    private val gold = 0xFFFFB300.toInt()      // 强调金色（恒亮，按钮/选框等"色块"通用）
-    private val dark = 0xFF2B2015.toInt()      // 深字/按钮文字（所有主题通用）
-    private val onDark = 0xFFF0E6D2.toInt()    // 固定「深底白字」：任何主题里写在深色按钮上的文字都用它，避免“深字配深底”
+    private val gold = 0xFFC8963E.toInt()      // 强调色（低饱和暖铜，按钮/选框等"色块"通用）
+    private val dark = 0xFF1B1E23.toInt()      // 深字/按钮文字（所有主题通用）
+    private val onDark = 0xFFE7ECEA.toInt()    // 固定「深底白字」：任何主题里写在深色按钮上的文字都用它，避免“深字配深底”
 
     // ★ 深底主题判断：目前仅「炭黑」是深底（深底配亮金字、浅字最清晰）；其余浅纸/透明一律黑字净金。
     private val isDark: Boolean
@@ -292,7 +292,10 @@ class QipuBrowser(
                 }
                 listContainer.addView(bookList)
                 // ★ 每个内置分类都带一个"上传到本分类"，不再只能塞进「我的上传」
-                if (cat.name in com.pikafish.chess.qipu.QipuLibrary.BUILTIN_CATS && onUploadCategory != null) {
+                //   #11「我的上传」也保留本分类上传入口；#12 之后（挑战棋谱/本地文档/我的对局等）不加入口。
+                val canUploadHere = cat.name in com.pikafish.chess.qipu.QipuLibrary.BUILTIN_CATS ||
+                    cat.name == "我的上传"
+                if (canUploadHere && onUploadCategory != null) {
                     bookList.addView(TextView(context).apply {
                         text = "⬆ 上传棋谱到「${cat.name}」（支持 ZIP 包 / XQF / MXQ / CBL / CBR / PGN / TXT / UBB）"
                         textSize = 13f; setTextColor(linkColor)
@@ -1017,7 +1020,7 @@ class QipuBrowser(
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(12, 14, 12, 14)
-            setBackgroundColor(0xFFFFB300.toInt())
+            setBackgroundColor(0xFFC8963E.toInt())
             setOnClickListener { openMyGames() }
         }
         row.addView(TextView(context).apply {
@@ -1798,9 +1801,8 @@ class QipuBrowser(
     }
 
     /** 占位书：说明能导入什么格式，并给出上传入口。 */
-    private fun showPlaceholder(book: QipuBook) {
+    private fun showPlaceholder(book: QipuBook, catName: String) {
         try {
-            val catName = cats.firstOrNull { c -> c.books.any { it === book || it.file == book.file } }?.name ?: ""
             val msg = "这一分类没有随包附带棋谱，请自行补充。\n\n" +
                 "支持的格式：\n" +
                 "· ZIP 压缩包（包内 XQF / MXQ / CBL / CBR / PGN / TXT / UBB 均可，自动分册）\n" +
@@ -2422,7 +2424,12 @@ class QipuBrowser(
 
     private fun openBook(catIndex: Int, bookIndex: Int, book: QipuBook) {
         // ★ 占位书：这一分类没有随包内容，只给格式说明 + 上传入口
-        if (book.file == "__none__") { showPlaceholder(book); return }
+        //   ★ 必须把当前分类名传进去：骨架里每个占位书的 file 都是 "__none__"，
+        //     再用 file 反查分类会永远命中第一个分类（习题），上传就会串台。
+        if (book.file == "__none__") {
+            showPlaceholder(book, cats.getOrNull(catIndex)?.name ?: "")
+            return
+        }
         val cacheKey = book.file + "|" + book.groupPrefix
         detailPage = 0
         val cached = bookGamesCache[cacheKey]
@@ -2688,7 +2695,7 @@ class QipuBrowser(
         line1.addView(Button(context).apply {
             text = if (hasImp) "✎标" else "标"
             textSize = 11f; setTextColor(gold)
-            setBackgroundColor(if (hasImp) 0xFF3A2C1E.toInt() else dark)
+            setBackgroundColor(if (hasImp) 0xFF1B1E23.toInt() else dark)
             setTypeface(null, Typeface.BOLD)
             setPadding(12.dp(), 4, 12.dp(), 4)
             setOnClickListener {

@@ -68,9 +68,9 @@ object BoardVisualPrefs {
 
     fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    /** 与主界面顶栏完全一致的背景/文字色（status_bar_bg / status_bar_text） */
-    private const val BAR_BG = "#FFF3C4"
-    private const val BAR_TEXT = "#5D4037"
+    /** 与主界面顶栏一致的背景/文字色（白面墨字） */
+    private const val BAR_BG = "#FFFFFF"
+    private const val BAR_TEXT = "#1B1E23"
 
     /**
      * ★ 沙盒顶栏：与主界面顶栏（layoutStatusBar）逐项克隆 —— 悬浮贴纸式，高 38dp、全宽、

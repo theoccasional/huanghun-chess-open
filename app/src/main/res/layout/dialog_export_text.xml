@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="选择导出格式，查看棋谱内容，可复制或保存到文件"
-        android:textColor="#E8D5A3"
+        android:textColor="#E7ECEA"
         android:textSize="13sp"
         android:layout_marginBottom="6dp" />
 
@@ -19,7 +19,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="保存到文件会自动生成带时间戳的文件名；复制则直接得到棋谱文字。"
-        android:textColor="#9A8F7A"
+        android:textColor="#A7B0AC"
         android:textSize="11sp"
         android:lineSpacingExtra="2dp"
         android:layout_marginBottom="8dp" />
@@ -35,7 +35,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="导出格式："
-            android:textColor="#E8D5A3"
+            android:textColor="#E7ECEA"
             android:textSize="13sp" />
 
         <Spinner
@@ -52,7 +52,7 @@
         android:layout_width="match_parent"
         android:layout_height="160dp"
         android:textColor="#FFFFFF"
-        android:textColorHint="#888888"
+        android:textColorHint="#9AA3A0"
         android:textSize="13sp"
         android:gravity="top|start"
         android:background="@drawable/edittext_dark_bg"
@@ -89,7 +89,7 @@
             android:text="保存到文件"
             android:textColor="#FFFFFF"
             android:textSize="13sp"
-            android:backgroundTint="#5C5040" />
+            android:backgroundTint="#66716C" />
 
         <Button
             android:id="@+id/btnExportClose"

@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 棋谱库圈二条目背景：深檀底 + 底部金线分隔 -->
+<!-- 棋谱库条目：墨色底 + 细青瓷分隔线，替代深檀+金线。 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#3A2C1E" />
-            <corners android:radius="4dp" />
+            <solid android:color="#2A2F35" />
+            <corners android:radius="8dp" />
         </shape>
     </item>
     <item android:left="2dp" android:right="2dp" android:bottom="2dp">
         <shape android:shape="rectangle">
-            <solid android:color="#2B2015" />
-            <corners android:radius="3dp" />
+            <solid android:color="#22262B" />
+            <corners android:radius="7dp" />
         </shape>
     </item>
     <item android:bottom="-2dp" android:left="10dp" android:right="2dp">
         <shape android:shape="rectangle">
-            <solid android:color="#C89B2C" />
+            <solid android:color="#4A7F70" />
         </shape>
     </item>
 </layer-list>

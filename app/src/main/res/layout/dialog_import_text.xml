@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="粘贴棋谱文字，或从文件选择"
-        android:textColor="#E8D5A3"
+        android:textColor="#E7ECEA"
         android:textSize="13sp"
         android:layout_marginBottom="6dp" />
 
@@ -19,7 +19,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="提示：本软件不对导入内容做长期保存与进度维护。\n导入即解、解完即走；阅读进度/拆棋进度等请用第三方记事工具另行笔录跟进。\n如需反复打谱，可在本地自建文件夹按目录分门别类，每次导入自取所需。"
-        android:textColor="#9A8F7A"
+        android:textColor="#A7B0AC"
         android:textSize="11sp"
         android:lineSpacingExtra="2dp"
         android:layout_marginBottom="8dp" />
@@ -30,7 +30,7 @@
         android:layout_height="160dp"
         android:hint="在此粘贴棋谱内容…"
         android:textColor="#FFFFFF"
-        android:textColorHint="#888888"
+        android:textColorHint="#9AA3A0"
         android:textSize="13sp"
         android:gravity="top|start"
         android:background="@drawable/edittext_dark_bg"
@@ -56,7 +56,7 @@
             android:text="粘贴剪贴板"
             android:textColor="#FFFFFF"
             android:textSize="13sp"
-            android:backgroundTint="#5C5040" />
+            android:backgroundTint="#66716C" />
 
         <Button
             android:id="@+id/btnFromFile"
@@ -67,7 +67,7 @@
             android:text="从文件选择"
             android:textColor="#FFFFFF"
             android:textSize="13sp"
-            android:backgroundTint="#5C5040" />
+            android:backgroundTint="#66716C" />
     </LinearLayout>
 
     <LinearLayout
@@ -97,7 +97,7 @@
             android:text="导入"
             android:textColor="#FFFFFF"
             android:textSize="13sp"
-            android:backgroundTint="#5C5040" />
+            android:backgroundTint="#66716C" />
 
         <Button
             android:id="@+id/btnCancel"

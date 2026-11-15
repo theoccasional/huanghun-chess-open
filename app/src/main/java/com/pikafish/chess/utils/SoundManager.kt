@@ -13,7 +13,7 @@ import android.util.Log
  * 职责：
  *  1. 走子/吃子/将军等短促音效 —— SoundPool，音量可调(音效音量)。
  *  2. 背景音乐(BGM) —— MediaPlayer 常驻(companion 静态对象，跨 Activity 共享)，支持：
- *       关 / 背景音一(snd/bgm1.ogg) / 背景音二(snd/bgm2.ogg)，音量独立调节。
+ *       关 / 暮色(snd/bg.mp3) / 古调·茉莉(snd/bgm2.ogg) / 寒江(snd/bgm1.ogg)，音量独立调节。
  *  3. 音效音量与背景音选择均持久化到 Sp("pikafish_audio")，下次启动自动恢复。
  */
 class SoundManager {
@@ -21,16 +21,18 @@ class SoundManager {
     companion object {
         private const val TAG = "SoundManager"
         private const val PREFS = "pikafish_audio"
-        private const val KEY_BGM = "bgm_index"          // 0=关 1=背景音一 2=背景音二
+        private const val KEY_BGM = "bgm_index"          // 0=关 1=暮色 2=古调·茉莉 3=寒江
         private const val KEY_SFX_VOL = "sfx_volume"     // 0..100
         private const val KEY_BGM_VOL = "bgm_volume"     // 0..100
         private const val DEF_SFX_VOL = 80
         private const val DEF_BGM_VOL = 70
 
         // ── BGM 资源定义（三个直接选项，全可见，次序对齐） ──
-        // 音乐1/2/3 均为本项目原创合成（纯正弦/拨弦/噪声，无任何第三方曲目或录音）
+        // 三套均为本项目程序合成（纯正弦/拨弦/噪声，无任何第三方曲目或录音）：
+        //   暮色 = 原创凄清长循环（180s）；古调·茉莉 = 公版民歌旋律的原创编配（150s）；寒江 = 稀疏古筝备选（120s）。
         val BGM_RES = arrayOf("snd/bg.mp3", "snd/bgm2.ogg", "snd/bgm1.ogg")
-        val BGM_NAMES = arrayOf("静夜", "空山", "寒江")
+        val BGM_NAMES = arrayOf("暮色", "古调·茉莉", "寒江")
+        val BGM_LABELS = arrayOf("暮色（凄清长循环）", "古调·茉莉（公版编曲）", "寒江（备选）")
 
         // ── 常驻背景音乐 ──
         private var bgmPlayer: MediaPlayer? = null

@@ -1,60 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- ══════════════════════════════════════════════════════════
-     ★ 暖金·浅色高级色板（向77象棋的高级感靠齐，浅色低风险进阶版）
-     基调：奶油象牙 + 古金(低饱和抹旧金) + 暖胡桃木棋盘，整体澄明有质感。
-     说明：只改"值"，不改任何颜色【名称】，布局/代码引用全部兼容，零功能风险。
+     ★ 墨玉·青瓷 色板（中性底色 + 单一强调色）
+     基调：雾白纸面 + 墨色文字 + 青瓷绿主操作 + 赤陶危险色；
+     棋盘保留暖木色作为唯一的“暖”元素，界面 chrome 不再用金色。
+     说明：只改"值"，不改任何颜色【名称】，布局/代码引用全部兼容。
      ══════════════════════════════════════════════════════════ -->
 <resources>
-    <!-- 主色调：低饱和古金（比原先刺眼的亮橙 #FFB300 更"抹旧"、更高级） -->
-    <color name="primary">#C89B2C</color>
-    <color name="primary_dark">#8F6E1D</color>
-    <color name="primary_light">#EAC96C</color>
+    <!-- 主色：青瓷绿（低饱和、偏墨，白字对比 6.2:1） -->
+    <color name="primary">#2F6B5A</color>
+    <color name="primary_dark">#234F43</color>
+    <color name="primary_light">#7FB6A4</color>
 
-    <!-- 棋盘：暖胡桃木，对比分明更润泽（浅格子象牙木 / 深格子陈年胡桃） -->
+    <!-- 棋盘：暖木色保留，作为界面里唯一的暖色焦点 -->
     <color name="board_light">#E9C28A</color>
     <color name="board_dark">#A06A2E</color>
-    <color name="board_bg">#F4E8CE</color>
+    <color name="board_bg">#F4F3EF</color>
 
-    <!-- 文字：暖墨棕，比纯黑更亲和高级 -->
-    <color name="text_primary">#3A2E1A</color>
-    <color name="text_secondary">#8A6A3D</color>
-    <color name="text_dark">#2C2215</color>
+    <!-- 文字：墨色，比纯黑柔和，层次更清楚 -->
+    <color name="text_primary">#1B1E23</color>
+    <color name="text_secondary">#646A71</color>
+    <color name="text_dark">#111318</color>
 
     <!-- 棋子（不参与改色，保持正红正黑） -->
     <color name="piece_red">#D42020</color>
     <color name="piece_black">#1A1A1A</color>
 
-    <!-- 高亮（透明透视，不参与改色） -->
-    <color name="selected_highlight">#44FF4444</color>
-    <color name="last_move_highlight">#44FFB300</color>
-    <color name="legal_move_dot">#44000000</color>
+    <!-- 高亮：赤陶选中 / 暖铜上一步，透明度收敛，不糊盘面 -->
+    <color name="selected_highlight">#33D24A3F</color>
+    <color name="last_move_highlight">#33C8963E</color>
+    <color name="legal_move_dot">#33000000</color>
 
-    <!-- Tab按钮：选中=古金，未选=暖杏金 -->
-    <color name="tab_active">#C89B2C</color>
-    <color name="tab_inactive">#E0BE7D</color>
-    <!-- ★ 去纸：页签行的「纸」透明化，按钮一个个直接浮在棋盘上（区域尺寸/排布逻辑分毫不动） -->
+    <!-- Tab：选中青瓷绿，未选雾灰（文字随之转墨色） -->
+    <color name="tab_active">#2F6B5A</color>
+    <color name="tab_inactive">#E7E9E5</color>
     <color name="tab_bar_bg">@android:color/transparent</color>
 
-    <!-- 面板背景：★ 去纸：面板不再铺底色，按钮后面没有纸（组件区域照旧占位，只是不画底） -->
+    <!-- 面板：透明底保留，描边改为中性雾灰 -->
     <color name="panel_bg">@android:color/transparent</color>
-    <color name="panel_border">#E4C47A</color>
+    <color name="panel_border">#DFE3DE</color>
 
-    <!-- 按钮（暖金高级：古金主操作 / 古铜中性 / 略降饱和的正红正绿） -->
-    <color name="btn_primary">#C89B2C</color>
-    <color name="btn_secondary">#AB8A2B</color>
-    <color name="btn_danger">#C2532E</color>
-    <color name="btn_success">#2F7A44</color>
-    <color name="btn_neutral">#A88A58</color>
-    <color name="btn_neutral_deep">#8A6A3D</color>
+    <!-- 按钮：青瓷主操作 / 竹青次操作 / 赤陶危险 / 灰绿中性 -->
+    <color name="btn_primary">#2F6B5A</color>
+    <color name="btn_secondary">#4C7F72</color>
+    <color name="btn_danger">#B23A2E</color>
+    <color name="btn_success">#2F7A50</color>
+    <color name="btn_neutral">#66716C</color>
+    <color name="btn_neutral_deep">#505A55</color>
 
-    <!-- 状态栏：一条暖梅子色带，与奶油底分明又不跳 -->
-    <color name="status_bar_bg">#EED9AE</color>
-    <color name="status_bar_text">#5A4218</color>
+    <!-- 顶栏：白面 + 墨字，靠投影与细线与棋盘分层 -->
+    <color name="status_bar_bg">#FFFFFF</color>
+    <color name="status_bar_text">#1B1E23</color>
 
-    <!-- 解说区域 -->
-    <color name="commentary_bg">#FFF8E6</color>
-    <color name="commentary_text">#5A4218</color>
+    <!-- 解说区域：白纸墨字 -->
+    <color name="commentary_bg">#FFFFFF</color>
+    <color name="commentary_text">#2A2E33</color>
 
-    <!-- 拖拽抓握条底色（低存在感，仅提示此处可拖） -->
-    <color name="grab_handle_bg">#E4C47A</color>
+    <!-- 拖拽抓握条：低存在感中性灰 -->
+    <color name="grab_handle_bg">#D6DAD5</color>
 </resources>

@@ -125,6 +125,7 @@
             android:textColor="@color/status_bar_text"
             android:textSize="13sp"
             android:textStyle="bold"
+            android:letterSpacing="0.04"
             android:paddingHorizontal="8dp"
             android:paddingVertical="2dp"
             android:clickable="true"
@@ -147,7 +148,8 @@
             android:text="请红方走棋了"
             android:textColor="@color/status_bar_text"
             android:textSize="14sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:letterSpacing="0.02" />
 
         <TextView
             android:id="@+id/tvEngineInfo"
@@ -155,7 +157,9 @@
             android:layout_height="wrap_content"
             android:text="黄昏引擎"
             android:textColor="@color/text_secondary"
-            android:textSize="10sp" />
+            android:textSize="11sp"
+            android:letterSpacing="0.03"
+            android:alpha="0.78" />
     </LinearLayout>
 
     <!-- ══════════════════════════════════════════════ -->
@@ -303,7 +307,7 @@
                         android:layout_width="wrap_content" android:layout_height="30dp"
                         android:minWidth="0dp"
                         android:gravity="center"
-                        android:text="🔃 翻转" android:textSize="12sp"
+                        android:text="翻转" android:textSize="12sp"
                         android:paddingHorizontal="4dp" android:paddingVertical="0dp"
                         android:backgroundTint="@color/btn_secondary" />
                 </LinearLayout>
@@ -1368,7 +1372,7 @@
                     android:layout_marginEnd="3dp"
                     android:minWidth="0dp"
                     android:paddingHorizontal="3dp"
-                    android:text="🔊 作者寄语"
+                    android:text="作者寄语"
                     android:textSize="13sp"
                     android:backgroundTint="@color/btn_neutral" />
 
@@ -1377,7 +1381,7 @@
                     style="@style/PremiumButton"
                     android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
                     android:layout_marginEnd="3dp"
-                    android:text="💬 进群反馈"
+                    android:text="进群反馈"
                     android:textSize="13sp"
                     android:minWidth="0dp"
                     android:paddingHorizontal="3dp"
@@ -1387,7 +1391,7 @@
                 <Button android:id="@+id/btnOtherWorks"
                     style="@style/PremiumButton"
                     android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
-                    android:text="🎮 其他作品"
+                    android:text="其他作品"
                     android:textSize="13sp"
                     android:minWidth="0dp"
                     android:paddingHorizontal="3dp"
@@ -1407,7 +1411,7 @@
                     style="@style/PremiumButton"
                     android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
                     android:layout_marginEnd="3dp"
-                    android:text="🎵 背景音"
+                    android:text="背景音"
                     android:textSize="13sp"
                     android:maxLines="1"
                     android:ellipsize="end"
@@ -1420,7 +1424,7 @@
                     style="@style/PremiumButton"
                     android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
                     android:layout_marginEnd="3dp"
-                    android:text="🌿 清新人生"
+                    android:text="清新人生"
                     android:textSize="13sp"
                     android:maxLines="1"
                     android:ellipsize="end"
@@ -1432,7 +1436,7 @@
                 <Button android:id="@+id/btnExternalReader"
                     style="@style/PremiumButton"
                     android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
-                    android:text="📚 外置读物"
+                    android:text="外置读物"
                     android:textSize="13sp"
                     android:maxLines="1"
                     android:ellipsize="end"
@@ -1455,7 +1459,7 @@
                     android:orientation="horizontal"><Button android:id="@+id/btnHeavyPack"
                     style="@style/PremiumButton"
                     android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
-                    android:text="📦 辎重包"
+                    android:text="辎重包"
                     android:textSize="13sp"
                     android:maxLines="1"
                     android:ellipsize="end"
@@ -1467,7 +1471,7 @@
                     android:layout_width="0dp" android:layout_weight="1"
                     android:layout_marginStart="8dp"
                     android:layout_height="34dp"
-                    android:text="📖 匹配推荐"
+                    android:text="匹配推荐"
                     android:textSize="13sp"
                     android:backgroundTint="@color/btn_primary" />
             </LinearLayout>
@@ -1591,7 +1595,7 @@
             style="@style/PremiumButton"
             android:layout_width="46dp"
             android:layout_height="34dp"
-            android:text="✏️工具"
+            android:text="工具"
             android:textSize="11sp"
             android:layout_gravity="top|start"
             android:layout_margin="6dp"
@@ -1632,7 +1636,7 @@
                 style="@style/PremiumButton"
                 android:layout_width="62dp"
                 android:layout_height="34dp"
-                android:text="🔺圈点"
+                android:text="圈点"
                 android:textSize="11sp"
                 android:padding="0dp"
                 android:layout_marginBottom="3dp" />
@@ -1642,7 +1646,7 @@
                 style="@style/PremiumButton"
                 android:layout_width="62dp"
                 android:layout_height="34dp"
-                android:text="🗑清除"
+                android:text="清除"
                 android:textSize="11sp"
                 android:padding="0dp"
                 android:layout_marginBottom="3dp" />
@@ -1672,7 +1676,7 @@
         android:orientation="horizontal"
         android:gravity="center"
         android:paddingVertical="1dp"
-        android:background="@color/board_bg"
+        android:background="@drawable/bg_bottom_nav"
         android:elevation="12dp">
 
         <!-- ★ 胶囊钮：只换底形状为胶囊，28dp 行高与两角定位点不动，面积不越界 -->

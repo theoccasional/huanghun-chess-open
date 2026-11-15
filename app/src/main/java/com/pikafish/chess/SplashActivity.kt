@@ -105,6 +105,11 @@ open class SplashActivity : Activity() {
             //   全量包内置了模型（builtinExists 为真）或已提供辎重包，则直接进入解压安装。
             if (hasHeavySource()) {
                 showFirstRunInstallUi()
+            } else if (resources.getBoolean(R.bool.skip_heavy_console)) {
+                // ★ 公开版源码构建可能未放入作者自有识别模型：
+                //   全量包仍应直接进主界面（对弈/棋谱/复盘不受影响），
+                //   拍照识别按原逻辑降级（ONNX 失败→OCR/提示），不把用户卡在辎重包引导上。
+                goMain()
             } else {
                 launchHeavyConsole()
             }

@@ -713,24 +713,20 @@ class MainActivity : AppCompatActivity() {
         "粗线" to 2.5f, "超粗" to 3.5f, "极粗" to 4.5f
     )
     private val menuBgColors = listOf(
-        // ［高亮·暖米/奶油系（默认）］
-        "暖米" to "#FFF3C4", "奶油" to "#FFF8E1", "象牙" to "#FFFDE7",
-        "鹅黄" to "#FFF59D", "麦浪" to "#FFF3C4", "杏白" to "#FFE6BC",
-        // ［高亮·暖色系］
-        "蜜桃" to "#FFCCBC", "蜜橙" to "#FFE0B2", "柠檬" to "#FFF176",
-        "暖砂" to "#FFCC80", "焦麦" to "#FFB74D", "淡粉" to "#FFEBEE",
-        // ［高亮·清新系］
-        "新绿" to "#DCEDC8", "薄荷" to "#C8EAE4", "淡青" to "#B2EBF2",
-        "天蓝" to "#BEE7FC", "湖水" to "#B2DFDB", "香芋" to "#EDE7F6",
+        // ［中性亮面（默认）］
+        "云白" to "#FFFFFF", "雾灰" to "#F3F4F1", "浅青" to "#E8F0EC",
+        "米白" to "#FAF9F5", "淡青灰" to "#E6EAE6", "薄荷" to "#DCEBE5",
+        // ［清新系］
+        "湖水" to "#D7E5E1", "天蓝" to "#E3EDF5", "香芋" to "#ECE8F2",
         // ［亮灰/中性］
-        "银灰" to "#ECEFF1", "云白" to "#F5F5F5", "浅青灰" to "#E0E0E0",
+        "银灰" to "#ECEFF1", "浅灰" to "#F5F5F5",
         // ［深色·少量保留］
-        "深木" to "#3E2723", "墨绿" to "#1B3A2A", "藏蓝" to "#1A2A5C"
+        "墨玉" to "#2A2E33", "墨绿" to "#1B3A2A", "藏蓝" to "#1A2A5C"
     )
     private val menuBtnColors = listOf(
-        "金色" to "#FFB300", "琥珀" to "#FF8F00", "银灰" to "#90A4AE",
-        "铜绿" to "#2E7D32", "朱砂" to "#E53935", "宝石蓝" to "#1976D2",
-        "橙红" to "#FF7043", "紫罗兰" to "#7E57C2"
+        "青瓷" to "#2F6B5A", "墨玉" to "#46514C", "银灰" to "#66716C",
+        "竹青" to "#4C7F72", "朱砂" to "#B23A2E", "黛蓝" to "#3A5A78",
+        "暖砂" to "#9A7B52", "紫檀" to "#6B4A56"
     )
     private val prefs: SharedPreferences by lazy { getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE) }
 
@@ -807,6 +803,7 @@ class MainActivity : AppCompatActivity() {
 
         try {
             chessGame = ChessGame(this)
+            migrateVisualStyleIfNeeded()
             initViews()
             setupCallbacks()
 
@@ -1004,6 +1001,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ── 视图初始化 ──
+
+    /** 一次性视觉迁移：把旧版保存的暖金/奶油/粉蓝默认值切到墨玉色板。
+     *  只跑一次；用户之后仍可在设置里改回任何颜色。 */
+    private fun migrateVisualStyleIfNeeded() {
+        val p = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        if (p.getInt("visual_style_version", 1) >= 2) return
+        p.edit()
+            .putInt(KEY_MENU_BTN_IDX, 0)
+            .putInt(KEY_MENU_BG_IDX, 0)
+            .putInt("visual_style_version", 2)
+            .apply()
+        val gp = getSharedPreferences("global_backdrop_prefs", Context.MODE_PRIVATE)
+        if (gp.getInt("backdrop_argb", 0) == 0xFFA8C7E6.toInt()) {
+            gp.edit().putInt("backdrop_argb", 0xFFF4F3EF.toInt()).apply()
+        }
+    }
 
     private fun initViews() {
         chessBoard = findViewById(R.id.chessBoard)
@@ -1230,7 +1243,7 @@ class MainActivity : AppCompatActivity() {
         btnSetupFlip.setOnClickListener {
             setupFlipped = !setupFlipped
             chessBoard.setFlipped(setupFlipped)
-            btnSetupFlip.text = if (setupFlipped) "已翻转" else "🔃 翻转"
+            btnSetupFlip.text = if (setupFlipped) "已翻转" else "翻转"
         }
         // ★ 圈定工具开关：进入/退出圈定面板
         btnSetupCrop.setOnClickListener { toggleSetupCropMode() }
@@ -1883,7 +1896,7 @@ class MainActivity : AppCompatActivity() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 if (isUpdatingUI) return
                 currentMenuBgIndex = position
-                val color = try { Color.parseColor(menuBgColors[position].second) } catch (_: Exception) { Color.parseColor("#F4E9D8") }
+                val color = try { Color.parseColor(menuBgColors[position].second) } catch (_: Exception) { Color.parseColor("#FFFFFF") }
                 applyMenuBgColor(color)
                 saveAllSettings()
             }
@@ -1901,7 +1914,7 @@ class MainActivity : AppCompatActivity() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 if (isUpdatingUI) return
                 currentMenuBtnIndex = position
-                val color = try { Color.parseColor(menuBtnColors[position].second) } catch (_: Exception) { Color.parseColor("#FFB300") }
+                val color = try { Color.parseColor(menuBtnColors[position].second) } catch (_: Exception) { Color.parseColor("#C8963E") }
                 updateAllMenuButtonColors(color)
                 saveAllSettings()
             }
@@ -2235,10 +2248,9 @@ class MainActivity : AppCompatActivity() {
             // ★ 全局背景：纯色档给纯色，图片档给铺满的背景图（一个入口通吃两套方案）
             val bg = com.pikafish.chess.ui.GlobalBackdrop.backdropDrawable(this)
             val fg = com.pikafish.chess.ui.GlobalBackdrop.foreground(this, color)
-            // ★ 思考细节(tvThinking)：不再用全局底色当"深色涂层"压棋盘，
-            //   固定浅色可读块，作为主菜单上方空缺区里的正常信息条（用户要求）。
-            tvThinking.setBackgroundColor(0xF2FFF3C4.toInt())
-            tvThinking.setTextColor(0xFF5D4037.toInt())
+            // ★ 思考细节：白面墨字，作为菜单上方缺口里的正常信息条。
+            tvThinking.setBackgroundColor(0xFFFFFFFF.toInt())
+            tvThinking.setTextColor(0xFF1B1E23.toInt())
             // ★ 主界面内容托底（棋盘外层 + 根 view）
             findViewById<View>(R.id.frameBoardOuter)?.background = bg
             // ★ 棋盘视图自身背景 = 全局底色/背景图：圆角棋盘外那一圈与全局一致，绝不露白
@@ -2750,14 +2762,14 @@ class MainActivity : AppCompatActivity() {
             
             // 恢复菜单按钮颜色
             if (currentMenuBtnIndex >= 0 && currentMenuBtnIndex < menuBtnColors.size) {
-                val btnColor = try { Color.parseColor(menuBtnColors[currentMenuBtnIndex].second) } catch (_: Exception) { Color.parseColor("#FFB300") }
+                val btnColor = try { Color.parseColor(menuBtnColors[currentMenuBtnIndex].second) } catch (_: Exception) { Color.parseColor("#C8963E") }
                 updateAllMenuButtonColors(btnColor)
                 spinnerMenuBtnColor.setSelection(currentMenuBtnIndex)
             }
             if (currentMenuBgIndex >= 0 && currentMenuBgIndex < menuBgColors.size) {
                 spinnerMenuBgColor.setSelection(currentMenuBgIndex)
                 // ★ 手动应用菜单背景色（因为isUpdatingUI=true时spinner监听器不触发）
-                val menuBgColor = try { Color.parseColor(menuBgColors[currentMenuBgIndex].second) } catch (_: Exception) { Color.parseColor("#F4E9D8") }
+                val menuBgColor = try { Color.parseColor(menuBgColors[currentMenuBgIndex].second) } catch (_: Exception) { Color.parseColor("#FFFFFF") }
                 applyMenuBgColor(menuBgColor)
             }
             
@@ -3554,7 +3566,7 @@ class MainActivity : AppCompatActivity() {
                         } else {
                             setColor(st.top)
                         }
-                        setStroke(dp(if (sel) 3 else 1), if (sel) 0xFFFFB300.toInt() else 0xFFCCB080.toInt())
+                        setStroke(dp(if (sel) 3 else 1), if (sel) 0xFFC8963E.toInt() else 0xFFCCB080.toInt())
                     }
                     cellViews.getOrNull(i)?.background = ColorDrawable(
                         if (sel) 0x1AB3541E.toInt() else 0x00000000)
@@ -3693,8 +3705,8 @@ class MainActivity : AppCompatActivity() {
         sb.max = maxP
         sb.progress = ((cur.coerceIn(0.5f, if (isBoard) 2.0f else ChessBoardView.MAX_PIECE_INPUT_SCALE) * 100).toInt() - 50).coerceIn(0, maxP)
         sb.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        sb.thumbTintList = android.content.res.ColorStateList.valueOf(0xFFFFB300.toInt())
-        sb.progressTintList = android.content.res.ColorStateList.valueOf(0xFFFFB300.toInt())
+        sb.thumbTintList = android.content.res.ColorStateList.valueOf(0xFFC8963E.toInt())
+        sb.progressTintList = android.content.res.ColorStateList.valueOf(0xFFC8963E.toInt())
         sb.progressBackgroundTintList = android.content.res.ColorStateList.valueOf(0x33663200.toInt())
         sb.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
@@ -4476,16 +4488,16 @@ class MainActivity : AppCompatActivity() {
             elevation = dp(60).toFloat()
         }
 
-        val gold = Color.parseColor("#FFF6E8D8")
-        val dim = Color.parseColor("#E6E8D8C0")
-        val frame = Color.parseColor("#FFB300")
+        val gold = Color.parseColor("#FFE7ECEA")
+        val dim = Color.parseColor("#FFA7B0AC")
+        val frame = Color.parseColor("#C8963E")
 
         // ── 一整块「框」：标题＋文案＋提示＋按钮；描金边框＝这一片区可整体拖动 ──
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10), dp(8), dp(10), dp(8))
             background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(0xF01E1610.toInt())
+                setColor(0xF01B1E23.toInt())
                 cornerRadius = dp(10).toFloat()
                 setStroke(dp(1), frame)
             }
@@ -4753,7 +4765,7 @@ class MainActivity : AppCompatActivity() {
         })
         head.addView(TextView(this).apply {
             text = "▲▼"
-            setTextColor(0xFFFFC457.toInt())
+            setTextColor(0xFFD9B36A.toInt())
             textSize = 13f
         })
         overlay.addView(head)
@@ -4782,8 +4794,8 @@ class MainActivity : AppCompatActivity() {
         sb.max = maxIdx
         sb.progress = (((cur.coerceIn(minV, maxV) - minV) / stepPx).toInt()).coerceIn(0, maxIdx)
         sb.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        sb.thumbTintList = android.content.res.ColorStateList.valueOf(0xFFFFC457.toInt())
-        sb.progressTintList = android.content.res.ColorStateList.valueOf(0xFFFFC457.toInt())
+        sb.thumbTintList = android.content.res.ColorStateList.valueOf(0xFFD9B36A.toInt())
+        sb.progressTintList = android.content.res.ColorStateList.valueOf(0xFFD9B36A.toInt())
         sb.progressBackgroundTintList = android.content.res.ColorStateList.valueOf(0x55321D0A.toInt())
         sb.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
@@ -4820,7 +4832,7 @@ class MainActivity : AppCompatActivity() {
         })
         overlay.addView(TextView(this).apply {
             text = "点击此处收起浮条"
-            setTextColor(0xFFFFC457.toInt())
+            setTextColor(0xFFD9B36A.toInt())
             textSize = 11f
             gravity = android.view.Gravity.CENTER
             setPadding(0, dp(6), 0, 0)
@@ -4859,17 +4871,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun highlightTab(active: Button) {
-        val activeColor = 0xFFFFB300.toInt()
-        val inactiveColor = 0xFF5C5040.toInt()
-        btnTabSettings.backgroundTintList = android.content.res.ColorStateList.valueOf(
-            if (active == btnTabSettings) activeColor else inactiveColor
-        )
-        btnTabGame.backgroundTintList = android.content.res.ColorStateList.valueOf(
-            if (active == btnTabGame) activeColor else inactiveColor
-        )
-        btnTabNotation.backgroundTintList = android.content.res.ColorStateList.valueOf(
-            if (active == btnTabNotation) activeColor else inactiveColor
-        )
+        // 墨玉色板：选中=青瓷绿白字，未选中=雾灰墨字。
+        val activeColor = 0xFF2F6B5A.toInt()
+        val inactiveColor = 0xFFE7E9E5.toInt()
+        val activeText = 0xFFFFFFFF.toInt()
+        val inactiveText = 0xFF3F454B.toInt()
+        val tabs = arrayOf(btnTabSettings, btnTabGame, btnTabNotation)
+        for (tab in tabs) {
+            val on = tab === active
+            tab.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                if (on) activeColor else inactiveColor
+            )
+            tab.setTextColor(if (on) activeText else inactiveText)
+        }
     }
 
     /** ★ 背谱：直接进背谱沙盘（谱源=当前棋谱的整棵树，绝对有指望；沙盘内再选边/套娃宝库） */
@@ -5652,13 +5666,14 @@ class MainActivity : AppCompatActivity() {
                 setPadding(32, 24, 32, 8)
             }
 
-            // ── 背景音乐：单选（关 / 音乐1 / 音乐2 / 音乐3），三个直接可见，点选即试听 ──
+            // ── 背景音乐：单选（关 / 暮色 / 古调·茉莉 / 寒江），三个直接可见，点选即试听 ──
+            val bgmLabels = com.pikafish.chess.utils.SoundManager.BGM_LABELS
             val bgmGroup = android.widget.RadioGroup(this).apply { orientation = android.widget.RadioGroup.VERTICAL }
             val rbBgml = arrayOf<android.widget.RadioButton>(
                 android.widget.RadioButton(this).apply { text = "🚫 关闭背景音乐"; textSize = 16f; setPadding(0, 6, 0, 6) },
-                android.widget.RadioButton(this).apply { text = "🎵 音乐1"; textSize = 16f; setPadding(0, 6, 0, 6) },
-                android.widget.RadioButton(this).apply { text = "🎵 音乐2"; textSize = 16f; setPadding(0, 6, 0, 6) },
-                android.widget.RadioButton(this).apply { text = "🎵 音乐3"; textSize = 16f; setPadding(0, 6, 0, 6) }
+                android.widget.RadioButton(this).apply { text = "🎵 ${bgmLabels[0]}"; textSize = 16f; setPadding(0, 6, 0, 6) },
+                android.widget.RadioButton(this).apply { text = "🎵 ${bgmLabels[1]}"; textSize = 16f; setPadding(0, 6, 0, 6) },
+                android.widget.RadioButton(this).apply { text = "🎵 ${bgmLabels[2]}"; textSize = 16f; setPadding(0, 6, 0, 6) }
             )
             for ((i, rb) in rbBgml.withIndex()) {
                 rb.setOnClickListener {
@@ -6016,12 +6031,12 @@ class MainActivity : AppCompatActivity() {
                 mp.setOnCompletionListener {
                     authorMsgPlaying = false
                     authorMsgPlayer = null
-                    btnAuthorIntent.text = "🔊 作者寄语"
+                    btnAuthorIntent.text = "作者寄语"
                 }
                 mp.setOnErrorListener { _, _, _ ->
                     authorMsgPlaying = false
                     authorMsgPlayer = null
-                    btnAuthorIntent.text = "🔊 作者寄语"
+                    btnAuthorIntent.text = "作者寄语"
                     true
                 }
                 mp.prepareAsync()
@@ -6031,7 +6046,7 @@ class MainActivity : AppCompatActivity() {
             }
         } catch (e: Exception) {
             Log.e(TAG, "作者寄语播放失败: ${e.message}", e)
-            btnAuthorIntent.text = "🔊 作者寄语"
+            btnAuthorIntent.text = "作者寄语"
         }
     }
 
@@ -6044,7 +6059,7 @@ class MainActivity : AppCompatActivity() {
         } catch (_: Exception) {}
         authorMsgPlayer = null
         authorMsgPlaying = false
-        btnAuthorIntent.text = "🔊 作者寄语"
+        btnAuthorIntent.text = "作者寄语"
     }
 
     /** ★ 宝库对局导航：上一则/下一则 */
@@ -7407,24 +7422,24 @@ class MainActivity : AppCompatActivity() {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setPadding(dp(28), dp(14), dp(28), dp(14))
         }
-        row.addView(TextView(this).apply { text = "复盘评估 · 选择区间"; setTextColor(0xFFE8D5A3.toInt()); textSize = 16f; gravity = Gravity.CENTER })
+        row.addView(TextView(this).apply { text = "复盘评估 · 选择区间"; setTextColor(0xFFB9C7C2.toInt()); textSize = 16f; gravity = Gravity.CENTER })
         row.addView(TextView(this).apply {
             text = "红一步+黑一步记一回合；只盘主变。单次或每批最多 20 回合；批处理可一次从开局扫到终局。"
-            setTextColor(0xFF9A8F7A.toInt()); textSize = 11f; gravity = Gravity.CENTER; setPadding(0, dp(2), 0, dp(6))
+            setTextColor(0xFF8D9691.toInt()); textSize = 11f; gravity = Gravity.CENTER; setPadding(0, dp(2), 0, dp(6))
         })
         row.addView(TextView(this).apply {
             text = "📜 复盘历史：点开既往复盘，直接完整展开（不重算、不重复记档）"
-            setTextColor(0xFFFFB300.toInt()); textSize = 12f; setPadding(0, dp(2), 0, dp(6))
+            setTextColor(0xFFC8963E.toInt()); textSize = 12f; setPadding(0, dp(2), 0, dp(6))
             setOnClickListener { showReviewLoadDialog() }
         })
 
         fun numField(default: String): EditText = EditText(this).apply {
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
             setText(default)
-            setTextColor(0xFFF0E6D2.toInt()); textSize = 14f
+            setTextColor(0xFFE7ECEA.toInt()); textSize = 14f
             setPadding(dp(12), dp(6), dp(12), dp(6))
             background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(0x335C5040.toInt()); cornerRadius = dp(6).toFloat(); setStroke(1, 0xFFFFB300.toInt())
+                setColor(0x33000000.toInt()); cornerRadius = dp(6).toFloat(); setStroke(1, 0xFFC8963E.toInt())
             }
         }
 
@@ -7432,11 +7447,11 @@ class MainActivity : AppCompatActivity() {
         val etStart = numField("1")
         val etEnd = numField(defaultEnd.toString())
         val lpF = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        hv.addView(TextView(this).apply { text = "从第 "; setTextColor(0xFFF0E6D2.toInt()); textSize = 13f })
+        hv.addView(TextView(this).apply { text = "从第 "; setTextColor(0xFFE7ECEA.toInt()); textSize = 13f })
         hv.addView(etStart, lpF)
-        hv.addView(TextView(this).apply { text = " 回合 → "; setTextColor(0xFFF0E6D2.toInt()); textSize = 13f })
+        hv.addView(TextView(this).apply { text = " 回合 → "; setTextColor(0xFFE7ECEA.toInt()); textSize = 13f })
         hv.addView(etEnd, lpF)
-        hv.addView(TextView(this).apply { text = " 回合"; setTextColor(0xFFF0E6D2.toInt()); textSize = 13f })
+        hv.addView(TextView(this).apply { text = " 回合"; setTextColor(0xFFE7ECEA.toInt()); textSize = 13f })
         row.addView(hv)
 
         val bv = LinearLayout(this).apply {
@@ -7444,13 +7459,13 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, dp(10), 0, 0)
         }
         val cbBatch = CheckBox(this).apply {
-            text = "批处理（分段复盘，一次扫完）"; setTextColor(0xFFF0E6D2.toInt()); textSize = 13f; isChecked = false
+            text = "批处理（分段复盘，一次扫完）"; setTextColor(0xFFE7ECEA.toInt()); textSize = 13f; isChecked = false
         }
         val etBatch = numField("20")
         bv.addView(cbBatch)
-        bv.addView(TextView(this).apply { text = "每次"; setTextColor(0xFFF0E6D2.toInt()); textSize = 12f; setPadding(dp(8), 0, dp(4), 0) })
+        bv.addView(TextView(this).apply { text = "每次"; setTextColor(0xFFE7ECEA.toInt()); textSize = 12f; setPadding(dp(8), 0, dp(4), 0) })
         bv.addView(etBatch, LinearLayout.LayoutParams(dp(64), LinearLayout.LayoutParams.WRAP_CONTENT))
-        bv.addView(TextView(this).apply { text = "回合"; setTextColor(0xFFF0E6D2.toInt()); textSize = 12f; setPadding(dp(5), 0, 0, 0) })
+        bv.addView(TextView(this).apply { text = "回合"; setTextColor(0xFFE7ECEA.toInt()); textSize = 12f; setPadding(dp(5), 0, 0, 0) })
         row.addView(bv)
         row.addView(TextView(this).apply {
             text = "批处理：每批 8~20 回合，自动分段（如 1—84 每批 10 → 1-10、11-20…末段余数），每段一页翻看"
@@ -7484,7 +7499,7 @@ class MainActivity : AppCompatActivity() {
                 showReviewConfirm(initialFen, moves, s!!, e!!, if (batchOn) bs!! else 0, reviewDepth)
             }
         }
-        styleScrimDialog(dlg, 0xB3302820.toInt(), radiusDp = 16, dim = 0.22f)
+        styleScrimDialog(dlg, 0xB31B1E23.toInt(), radiusDp = 16, dim = 0.22f)
         dlg.show()
     }
 
@@ -7496,11 +7511,11 @@ class MainActivity : AppCompatActivity() {
         }
         row.addView(TextView(this).apply {
             text = "复盘历史"
-            setTextColor(0xFFE8D5A3.toInt()); textSize = 15f; gravity = Gravity.CENTER
+            setTextColor(0xFFB9C7C2.toInt()); textSize = 15f; gravity = Gravity.CENTER
         })
         row.addView(TextView(this).apply {
             text = "点开既往复盘即完整展开：曲线、点节点小棋盘、[进]直达、错着热链试走全都可用；只读展开，不重新计算、不再写入新历史"
-            setTextColor(0xFF9A8F7A.toInt()); textSize = 11f; gravity = Gravity.CENTER; setPadding(0, dp(2), 0, dp(8))
+            setTextColor(0xFF8D9691.toInt()); textSize = 11f; gravity = Gravity.CENTER; setPadding(0, dp(2), 0, dp(8))
         })
         val scroll = ScrollView(this)
         val listBody = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -7508,7 +7523,7 @@ class MainActivity : AppCompatActivity() {
         if (files.isEmpty()) {
             listBody.addView(TextView(this).apply {
                 text = "（暂无历史，先做一次复盘会自动记入）"
-                setTextColor(0xFF9A8F7A.toInt()); textSize = 12f; gravity = Gravity.CENTER; setPadding(0, dp(20), 0, dp(20))
+                setTextColor(0xFF8D9691.toInt()); textSize = 12f; gravity = Gravity.CENTER; setPadding(0, dp(20), 0, dp(20))
             })
         }
         files.forEach { f ->
@@ -7529,9 +7544,9 @@ class MainActivity : AppCompatActivity() {
             }
             line.addView(Button(this).apply {
                 text = label
-                setTextColor(0xFFF0E6D2.toInt()); textSize = 12f
+                setTextColor(0xFFE7ECEA.toInt()); textSize = 12f
                 background = android.graphics.drawable.GradientDrawable().apply {
-                    setColor(0x335C5040.toInt()); cornerRadius = dp(6).toFloat(); setStroke(1, 0xFFFFB300.toInt())
+                    setColor(0x33000000.toInt()); cornerRadius = dp(6).toFloat(); setStroke(1, 0xFFC8963E.toInt())
                 }
                 setPadding(dp(12), dp(6), dp(12), dp(6))
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
@@ -7550,7 +7565,7 @@ class MainActivity : AppCompatActivity() {
             line.addView(Button(this).apply {
                 text = "🗑 删除"; setTextColor(0xFFE0B0A0.toInt()); textSize = 12f
                 background = android.graphics.drawable.GradientDrawable().apply {
-                    setColor(0x335C5040.toInt()); cornerRadius = dp(6).toFloat(); setStroke(1, 0xFFB0412E.toInt())
+                    setColor(0x33000000.toInt()); cornerRadius = dp(6).toFloat(); setStroke(1, 0xFFB0412E.toInt())
                 }
                 setPadding(dp(10), dp(6), dp(10), dp(6))
                 setOnClickListener {
@@ -7564,7 +7579,7 @@ class MainActivity : AppCompatActivity() {
                         }
                         .setNegativeButton("取消", null)
                         .create()
-                        .also { styleScrimDialog(it, 0xB3302820.toInt(), radiusDp = 16, dim = 0.22f) }
+                        .also { styleScrimDialog(it, 0xB31B1E23.toInt(), radiusDp = 16, dim = 0.22f) }
                         .show()
                 }
             })
@@ -7574,7 +7589,7 @@ class MainActivity : AppCompatActivity() {
         row.addView(scroll, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(320)))
         val dlg = androidx.appcompat.app.AlertDialog.Builder(this).setView(row).setPositiveButton("取消", null).create()
         picker = dlg
-        styleScrimDialog(dlg, 0xB3302820.toInt(), radiusDp = 16, dim = 0.22f)
+        styleScrimDialog(dlg, 0xB31B1E23.toInt(), radiusDp = 16, dim = 0.22f)
         dlg.show()
     }
 
@@ -7587,7 +7602,7 @@ class MainActivity : AppCompatActivity() {
                 .setPositiveButton("确定复盘") { _, _ -> launchReview(initialFen, moves, startRound, endRound, 0, reviewDepth) }
                 .setNegativeButton("返回修改", null)
                 .create()
-            styleScrimDialog(dlg, 0xB3302820.toInt(), radiusDp = 16, dim = 0.22f)
+            styleScrimDialog(dlg, 0xB31B1E23.toInt(), radiusDp = 16, dim = 0.22f)
             dlg.show()
             return
         }
@@ -7604,7 +7619,7 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton("开始批处理") { _, _ -> launchReview(initialFen, moves, startRound, endRound, batchSize, reviewDepth) }
             .setNegativeButton("返回修改", null)
             .create()
-        styleScrimDialog(dlg, 0xB3302820.toInt(), radiusDp = 16, dim = 0.22f)
+        styleScrimDialog(dlg, 0xB31B1E23.toInt(), radiusDp = 16, dim = 0.22f)
         dlg.show()
     }
 
@@ -7624,7 +7639,7 @@ class MainActivity : AppCompatActivity() {
             .setMessage("正在逐回合评估…（视手机性能需数秒到一两分钟）")
             .setCancelable(false)
             .create()
-        styleScrimDialog(progress, 0xB3302820.toInt(), radiusDp = 16, dim = 0.22f)
+        styleScrimDialog(progress, 0xB31B1E23.toInt(), radiusDp = 16, dim = 0.22f)
         progress.show()
 
         val collected = ArrayList<ReviewSegment>()
@@ -7715,11 +7730,11 @@ class MainActivity : AppCompatActivity() {
         content.addView(TextView(this).apply {
             text = if (isBatch) "复盘评估 · 批处理 第 ${idx + 1}/${segments.size} 段（第 $firstNodeRound—$lastNodeRound 回合局面）"
                    else "复盘评估 · 第 $firstNodeRound — $lastNodeRound 回合局面"
-            setTextColor(0xFFF0E6D2.toInt()); textSize = 16f; gravity = Gravity.CENTER
+            setTextColor(0xFFE7ECEA.toInt()); textSize = 16f; gravity = Gravity.CENTER
         })
         content.addView(TextView(this).apply {
             text = "红正分 / 黑负分 / 0 均势；上方红优、下方黑优；杀棋贴边箭头；红环=漏着，琥珀三角=走下坡"
-            setTextColor(0xFF9A8F7A.toInt()); textSize = 11f; gravity = Gravity.CENTER; setPadding(0, dp(2), 0, dp(6))
+            setTextColor(0xFF8D9691.toInt()); textSize = 11f; gravity = Gravity.CENTER; setPadding(0, dp(2), 0, dp(6))
         })
         val curve = CurveView(this).apply {
             values = seg.curve
@@ -7747,7 +7762,7 @@ class MainActivity : AppCompatActivity() {
         // ★ 常开小棋盘面板：回合侧条(回合/谁已走/进) + 小棋盘，固定在纸张上方（棋盘在上、曲线在下）
         val dockedBoard = MiniGameBoardView(this)
         val tvRound = TextView(this).apply {
-            gravity = Gravity.CENTER; setTextColor(0xFFF0E6D2.toInt()); textSize = 22f; isSingleLine = true
+            gravity = Gravity.CENTER; setTextColor(0xFFE7ECEA.toInt()); textSize = 22f; isSingleLine = true
         }
         val tvMover = TextView(this).apply { gravity = Gravity.CENTER; textSize = 10f; isSingleLine = true }
         val btnEnter = verticalChip("进") { }
@@ -7757,7 +7772,7 @@ class MainActivity : AppCompatActivity() {
         }
         dockCol.addView(tvRound, LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(4) })
         dockCol.addView(TextView(this).apply {
-            text = "回合"; gravity = Gravity.CENTER; setTextColor(0xFF9A8F7A.toInt()); textSize = 10f
+            text = "回合"; gravity = Gravity.CENTER; setTextColor(0xFF8D9691.toInt()); textSize = 10f
         })
         dockCol.addView(tvMover)
         dockCol.addView(TextView(this).apply { /* 弹性占位，进贴底 */ }, LinearLayout.LayoutParams(0, 0, 1f))
@@ -7783,7 +7798,7 @@ class MainActivity : AppCompatActivity() {
         dockPanel.addView(dockedBoard, LinearLayout.LayoutParams(0, boardH, 1f))
         // ★ 棋盘右侧空地：实时局面评估（红优/黑优/略优/均势 + 分值），以及 [进] 一跳直达主界面
         val tvEvalCap = TextView(this).apply {
-            text = "当前局面"; gravity = Gravity.CENTER; setTextColor(0xFF9A8F7A.toInt()); textSize = 9f
+            text = "当前局面"; gravity = Gravity.CENTER; setTextColor(0xFF8D9691.toInt()); textSize = 9f
         }
         val tvEvalSide = TextView(this).apply { gravity = Gravity.CENTER; textSize = 15f; isSingleLine = true }
         val tvEvalScore = TextView(this).apply { gravity = Gravity.CENTER; textSize = 11f; isSingleLine = true }
@@ -7857,7 +7872,7 @@ class MainActivity : AppCompatActivity() {
             // ★ 谁已走（客观真实）：pt.ply==0 → 没走棋，写「设局X先」；否则刚走的那步属于对手方 → 对手方"已走"。
             if (pt.ply == 0) {
                 tvMover.text = if (pt.color == PieceColor.RED) "设局红先" else "设局黑先"
-                tvMover.setTextColor(0xFFFFB300.toInt())
+                tvMover.setTextColor(0xFFC8963E.toInt())
             } else {
                 val mover = if (pt.color == PieceColor.RED) PieceColor.BLACK else PieceColor.RED
                 if (mover == PieceColor.RED) { tvMover.text = "红已走"; tvMover.setTextColor(0xFFFF6E6E.toInt()) }
@@ -7889,7 +7904,7 @@ class MainActivity : AppCompatActivity() {
             val evalColor = when {
                 mate -> if (v > 0) 0xFFFF6E6E.toInt() else 0xFF64B5F6.toInt()
                 mag < 80 -> 0xFF9CCC65.toInt()
-                mag < 400 -> 0xFFFFB300.toInt()
+                mag < 400 -> 0xFFC8963E.toInt()
                 v > 0 -> 0xFFFF6E6E.toInt()
                 else -> 0xFF64B5F6.toInt()
             }
@@ -7906,7 +7921,7 @@ class MainActivity : AppCompatActivity() {
         // ★ 摘要文案：紧接曲线之下，属于「锁定区」，不参与滚动
         content.addView(TextView(this).apply {
             text = "本段共评估 ${seg.points.size} 处局面，漏着 ${seg.blunders.size} 处、连续下滑趋势 ${seg.slips.size} 处："
-            setTextColor(0xFFE8D5A3.toInt()); textSize = 12f; setPadding(0, dp(8), 0, dp(1))
+            setTextColor(0xFFB9C7C2.toInt()); textSize = 12f; setPadding(0, dp(8), 0, dp(1))
         })
         // ★ 装饰分隔线：短实横线 + 居中圆点相间排开。
         //   它是一道界线 —— 线以上(小棋盘/曲线/摘要)整体锁定不滚动，线以下只有棋谱区自己滚。
@@ -7924,7 +7939,7 @@ class MainActivity : AppCompatActivity() {
             navRow.addView(navBtn("◀ 上一页", idx > 0) { resultDlg?.dismiss(); showReviewResultPaged(bundle, idx - 1) })
             navRow.addView(TextView(this).apply {
                 text = "　第 ${idx + 1}/${segments.size} 页　"
-                setTextColor(0xFFE8D5A3.toInt()); textSize = 12f; gravity = Gravity.CENTER
+                setTextColor(0xFFB9C7C2.toInt()); textSize = 12f; gravity = Gravity.CENTER
             }, LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             navRow.addView(navBtn("下一页 ▶", idx < segments.size - 1) { resultDlg?.dismiss(); showReviewResultPaged(bundle, idx + 1) })
             content.addView(navRow)
@@ -7967,7 +7982,7 @@ class MainActivity : AppCompatActivity() {
             })
             listBody.addView(TextView(this).apply {
                 text = "  主变：${b.bestPv.ifBlank { "—" }}"
-                setTextColor(0xFF9A8F7A.toInt()); textSize = 11f
+                setTextColor(0xFF8D9691.toInt()); textSize = 11f
             })
             // ★ 主变末尾的「进入」热链：就地弹小棋盘，把这段主变一步步走给人看
             //   （上一步 / 下一步 / 播放·暂停 / 速度 / 关闭）。与上面的「跳到该着试走」不同 ——
@@ -7990,12 +8005,12 @@ class MainActivity : AppCompatActivity() {
         if (seg.slips.isNotEmpty()) {
             listBody.addView(TextView(this).apply {
                 text = "— 持续下行趋势（开始走下坡） —"
-                setTextColor(0xFFFFB300.toInt()); textSize = 12f; setPadding(0, dp(10), 0, dp(2))
+                setTextColor(0xFFC8963E.toInt()); textSize = 12f; setPadding(0, dp(10), 0, dp(2))
             })
             seg.slips.forEach { sp ->
                 listBody.addView(TextView(this).apply {
                     text = "▽ 开始走下坡 · ${sp.note}"
-                    setTextColor(0xFFFFB300.toInt()); textSize = 12f; setPadding(0, dp(2), 0, 0)
+                    setTextColor(0xFFC8963E.toInt()); textSize = 12f; setPadding(0, dp(2), 0, 0)
                 })
             }
         }
@@ -8018,12 +8033,12 @@ class MainActivity : AppCompatActivity() {
             cm.setPrimaryClip(ClipData.newPlainText("复盘要点", sb.toString()))
             toast("本段复盘要点已复制")
         }
-        fun barChip(text: String, color: Int = 0xFFF0E6D2.toInt(), onClick: () -> Unit): Button {
+        fun barChip(text: String, color: Int = 0xFFE7ECEA.toInt(), onClick: () -> Unit): Button {
             val b = Button(this)
             b.text = text; b.isAllCaps = false; b.textSize = 11f; b.minimumWidth = 0; b.maxLines = 1
             b.setPadding(dp(6), dp(4), dp(6), dp(4))
             b.background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(0x335C5040.toInt()); cornerRadius = dp(14).toFloat(); setStroke(dp(1).toInt(), 0xFFFFB300.toInt())
+                setColor(0x33000000.toInt()); cornerRadius = dp(14).toFloat(); setStroke(dp(1).toInt(), 0xFFC8963E.toInt())
             }
             b.setTextColor(color)
             b.setOnClickListener { onClick() }
@@ -8045,7 +8060,7 @@ class MainActivity : AppCompatActivity() {
             // ★ 字号调节：滑杆实时放大/缩小整页文字（棋盘与曲线图不参与）
             showReviewFontSlider(body)
         })
-        barKids.add(barChip("底色调节", 0xFFFFD24A.toInt()) {
+        barKids.add(barChip("底色调节", 0xFFD9B36A.toInt()) {
             // ★ 底色调节：弹出色谱取色板，用户自选任意整页底色
             showColorPicker(curPaper) { c ->
                 curPaper = c
@@ -8093,7 +8108,7 @@ class MainActivity : AppCompatActivity() {
                 reviewLiveBundle = null
             }
         }
-        styleScrimDialog(dlg, 0xB3302820.toInt(), radiusDp = 16, dim = 0.22f)
+        styleScrimDialog(dlg, 0xB31B1E23.toInt(), radiusDp = 16, dim = 0.22f)
         // ★ 页面建好后统一套用记忆中的复盘字号（棋盘、曲线图、底栏都在排除之列）
         applyReviewFontScale(body, reviewFontScale)
         dlg.show()
@@ -8177,9 +8192,9 @@ class MainActivity : AppCompatActivity() {
             bar = Button(this)
             bar.background = android.graphics.drawable.GradientDrawable().apply {
                 setColor(0xFF1E1610.toInt()); cornerRadius = dp(12).toFloat()   // 两端圆弧包住内容
-                setStroke(dp(1).toInt(), 0xFFFFB300.toInt())
+                setStroke(dp(1).toInt(), 0xFFC8963E.toInt())
             }
-            bar.setTextColor(0xFFF0E6D2.toInt()); bar.textSize = 12f; bar.isAllCaps = false
+            bar.setTextColor(0xFFE7ECEA.toInt()); bar.textSize = 12f; bar.isAllCaps = false
             bar.minHeight = 0          // ★ 关掉 Button 自带的最小高度，让条只贴着字高，竖向最省面积
             bar.minimumHeight = 0
             bar.minimumWidth = 0
@@ -8342,7 +8357,7 @@ class MainActivity : AppCompatActivity() {
         }
         host.addView(TextView(this).apply {
             text = "挑一个喜欢的整页底色（横拖色相条、点在色板上随意选色）："
-            setTextColor(0xFFE8D5A3.toInt()); textSize = 13f
+            setTextColor(0xFFB9C7C2.toInt()); textSize = 13f
         })
         host.addView(picker, LinearLayout.LayoutParams(dp(250), dp(250)).apply { topMargin = dp(8); bottomMargin = dp(4) })
         val dlg = androidx.appcompat.app.AlertDialog.Builder(this)
@@ -8351,7 +8366,7 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton("采用") { _, _ -> onPick(picker.color) }
             .setNegativeButton("取消", null)
             .create()
-        styleScrimDialog(dlg, 0xB3302820.toInt(), radiusDp = 16, dim = 0.22f)
+        styleScrimDialog(dlg, 0xB31B1E23.toInt(), radiusDp = 16, dim = 0.22f)
         dlg.show()
     }
 
@@ -8373,9 +8388,9 @@ class MainActivity : AppCompatActivity() {
     private fun miniChip(text: String, onClick: () -> Unit): Button {
         val b = Button(this)
         b.text = text
-        b.setTextColor(0xFFF0E6D2.toInt()); b.textSize = 12f; b.minimumWidth = dp(46)
+        b.setTextColor(0xFFE7ECEA.toInt()); b.textSize = 12f; b.minimumWidth = dp(46)
         b.background = android.graphics.drawable.GradientDrawable().apply {
-            setColor(0x335C5040.toInt()); cornerRadius = dp(6).toFloat(); setStroke(1, 0xFFFFB300.toInt())
+            setColor(0x33000000.toInt()); cornerRadius = dp(6).toFloat(); setStroke(1, 0xFFC8963E.toInt())
         }
         b.setPadding(dp(10), dp(3), dp(10), dp(3))
         b.setOnClickListener { onClick() }
@@ -8386,9 +8401,9 @@ class MainActivity : AppCompatActivity() {
     private fun verticalChip(text: String, onClick: () -> Unit): Button {
         val b = Button(this)
         b.text = text
-        b.setTextColor(0xFFF0E6D2.toInt()); b.textSize = 13f
+        b.setTextColor(0xFFE7ECEA.toInt()); b.textSize = 13f
         b.background = android.graphics.drawable.GradientDrawable().apply {
-            setColor(0x335C5040.toInt()); cornerRadius = dp(7).toFloat(); setStroke(1, 0xFFFFB300.toInt())
+            setColor(0x33000000.toInt()); cornerRadius = dp(7).toFloat(); setStroke(1, 0xFFC8963E.toInt())
         }
         b.minimumHeight = dp(34)
         b.setPadding(dp(0), dp(3), dp(0), dp(3))
@@ -8400,9 +8415,9 @@ class MainActivity : AppCompatActivity() {
     private fun navBtn(text: String, enabled: Boolean, onClick: () -> Unit): Button {
         val b = Button(this)
         b.text = text
-        b.setTextColor(0xFFF0E6D2.toInt()); b.textSize = 12f
+        b.setTextColor(0xFFE7ECEA.toInt()); b.textSize = 12f
         b.background = android.graphics.drawable.GradientDrawable().apply {
-            setColor(0x335C5040.toInt()); cornerRadius = dp(6).toFloat(); setStroke(1, 0xFFFFB300.toInt())
+            setColor(0x33000000.toInt()); cornerRadius = dp(6).toFloat(); setStroke(1, 0xFFC8963E.toInt())
         }
         b.setPadding(dp(10), dp(5), dp(10), dp(5))
         b.isEnabled = enabled
@@ -8491,16 +8506,16 @@ class MainActivity : AppCompatActivity() {
 
         val titleTv = TextView(this).apply {
             text = "主变演示 · 第 ${b.round} 回合 · $sideCh"
-            setTextColor(0xFFF0E6D2.toInt()); textSize = 15f; gravity = Gravity.CENTER
+            setTextColor(0xFFE7ECEA.toInt()); textSize = 15f; gravity = Gravity.CENTER
         }
         val subTv = TextView(this).apply {
             text = "错着«${b.movePlayedChinese}»　正解«${b.bestMoveChinese}»　绿叶箭头=下一手"
-            setTextColor(0xFF9A8F7A.toInt()); textSize = 11f; gravity = Gravity.CENTER
+            setTextColor(0xFF8D9691.toInt()); textSize = 11f; gravity = Gravity.CENTER
             setPadding(0, dp(2), 0, dp(4))
         }
         val mini = MiniGameBoardView(this)
         val stepTv = TextView(this).apply {
-            setTextColor(0xFFF0E6D2.toInt()); textSize = 13f; gravity = Gravity.CENTER
+            setTextColor(0xFFE7ECEA.toInt()); textSize = 13f; gravity = Gravity.CENTER
             setPadding(0, dp(5), 0, dp(3))
         }
         val movesTv = TextView(this).apply {
@@ -8536,14 +8551,14 @@ class MainActivity : AppCompatActivity() {
             playBtn?.text = "▶ 播放"
         }
 
-        fun chip(text: String, color: Int = 0xFFF0E6D2.toInt(), onClick: () -> Unit): Button {
+        fun chip(text: String, color: Int = 0xFFE7ECEA.toInt(), onClick: () -> Unit): Button {
             val btn = Button(this)
             btn.text = text; btn.isAllCaps = false; btn.textSize = 12f
             btn.minimumWidth = 0; btn.maxLines = 1
             btn.setPadding(dp(8), dp(5), dp(8), dp(5))
             btn.background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(0x335C5040.toInt()); cornerRadius = dp(14).toFloat()
-                setStroke(dp(1).toInt(), 0xFFFFB300.toInt())
+                setColor(0x33000000.toInt()); cornerRadius = dp(14).toFloat()
+                setStroke(dp(1).toInt(), 0xFFC8963E.toInt())
             }
             btn.setTextColor(color)
             btn.setOnClickListener { onClick() }
@@ -8573,7 +8588,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         lateinit var btnSpeed: Button
-        btnSpeed = chip("速度:${speeds[speedIdx].first}", 0xFFFFD24A.toInt()) {
+        btnSpeed = chip("速度:${speeds[speedIdx].first}", 0xFFD9B36A.toInt()) {
             speedIdx = (speedIdx + 1) % speeds.size
             btnSpeed.text = "速度:${speeds[speedIdx].first}"
         }
@@ -8608,7 +8623,7 @@ class MainActivity : AppCompatActivity() {
 
         val dlg = androidx.appcompat.app.AlertDialog.Builder(this).setView(root).create()
         dlgRef = dlg
-        styleScrimDialog(dlg, 0xB3302820.toInt(), radiusDp = 16, dim = 0.32f)
+        styleScrimDialog(dlg, 0xB31B1E23.toInt(), radiusDp = 16, dim = 0.32f)
         // 关闭/返回/点外部：只停表关本小窗，复盘弹窗与结果原样保留（回到没点「进入」的状态）
         dlg.setOnDismissListener { playing = false; handler.removeCallbacks(tick) }
         render()
@@ -8645,11 +8660,11 @@ class MainActivity : AppCompatActivity() {
         }
         layout.addView(TextView(this).apply {
             text = "选择导入格式"
-            setTextColor(0xFFE8D5A3.toInt()); textSize = 16f; gravity = Gravity.CENTER
+            setTextColor(0xFFB9C7C2.toInt()); textSize = 16f; gravity = Gravity.CENTER
         })
         layout.addView(TextView(this).apply {
             text = "文字格式粘贴或选文件；XQF / CBL 直接选文件"
-            setTextColor(0xFF9A8F7A.toInt()); textSize = 11f; gravity = Gravity.CENTER
+            setTextColor(0xFF8D9691.toInt()); textSize = 11f; gravity = Gravity.CENTER
             setPadding(0, dp(2), 0, dp(8))
         })
         // ★ 一排两个网格：占地砍半，每格内容一字不差（10 项 → 5 行）
@@ -8662,10 +8677,10 @@ class MainActivity : AppCompatActivity() {
                 val key = keys[i]
                 val b = Button(this).apply {
                     text = labels[i]
-                    setTextColor(0xFFF0E6D2.toInt()); textSize = 13f
+                    setTextColor(0xFFE7ECEA.toInt()); textSize = 13f
                     background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(0x335C5040.toInt()); cornerRadius = dp(6).toFloat()
-                        setStroke(1, 0xFFFFB300.toInt())
+                        setColor(0x33000000.toInt()); cornerRadius = dp(6).toFloat()
+                        setStroke(1, 0xFFC8963E.toInt())
                     }
                     setPadding(dp(4), dp(5), dp(4), dp(5))
                 }
@@ -8684,7 +8699,7 @@ class MainActivity : AppCompatActivity() {
             .setView(layout)
             .setCancelable(true)
             .create()
-        styleScrimDialog(dlg, 0xB3302820.toInt(), radiusDp = 16, dim = 0.22f)
+        styleScrimDialog(dlg, 0xB31B1E23.toInt(), radiusDp = 16, dim = 0.22f)
         dlg.show()
     }
 
@@ -8776,7 +8791,7 @@ class MainActivity : AppCompatActivity() {
         }
         layout.addView(TextView(this).apply {
             text = "导出本局棋谱"
-            setTextColor(0xFFE8D5A3.toInt()); textSize = 17f; gravity = Gravity.CENTER
+            setTextColor(0xFFB9C7C2.toInt()); textSize = 17f; gravity = Gravity.CENTER
         })
         layout.addView(TextView(this).apply {
             text = "共 ${runCatching { chessGame.getMoveCount() }.getOrDefault(0)} 手" +
@@ -8804,13 +8819,13 @@ class MainActivity : AppCompatActivity() {
                     val cell = Button(this).apply {
                         val actionHint = if (fmt.binary) "·保存文件" else "·复制转发"
                         text = "${fmt.label}\n${actionHint}"
-                        setTextColor(0xFFF0E6D2.toInt()); textSize = 13f
+                        setTextColor(0xFFE7ECEA.toInt()); textSize = 13f
                         gravity = Gravity.CENTER
                         setLineSpacing(2f, 1f)
                         background = android.graphics.drawable.GradientDrawable().apply {
-                            setColor(if (fmt.varFmt) 0x334A7A3A.toInt() else 0x335C5040.toInt())
+                            setColor(if (fmt.varFmt) 0x334A7A3A.toInt() else 0x33000000.toInt())
                             cornerRadius = dp(6).toFloat()
-                            setStroke(1, if (fmt.varFmt) 0xFF8FC981.toInt() else 0xFFFFB300.toInt())
+                            setStroke(1, if (fmt.varFmt) 0xFF8FC981.toInt() else 0xFFC8963E.toInt())
                         }
                         setPadding(dp(4), dp(6), dp(4), dp(6))
                         // 点击=导出并保存（文本格式也复制）
@@ -8854,7 +8869,7 @@ class MainActivity : AppCompatActivity() {
             .setView(scroller)
             .setCancelable(true)
             .create()
-        styleScrimDialog(dlg, 0xB3302820.toInt(), radiusDp = 16, dim = 0.22f)
+        styleScrimDialog(dlg, 0xB31B1E23.toInt(), radiusDp = 16, dim = 0.22f)
         dlg.show()
     }
 
@@ -9668,7 +9683,7 @@ class MainActivity : AppCompatActivity() {
             banner.text = titleTxt + hintTxt
             banner.textSize = 15f
             banner.setTypeface(banner.typeface, android.graphics.Typeface.BOLD)
-            banner.setTextColor(0xFF9A6B00.toInt())
+            banner.setTextColor(0xFF7A5A2A.toInt())
             banner.setBackgroundColor(0x22FFB300.toInt())
             banner.setPadding(8, 6, 8, 6)
             banner.setLineSpacing(1f, 1f)
@@ -9853,7 +9868,7 @@ class MainActivity : AppCompatActivity() {
             text = "本局旁白"
             textSize = 13f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
-            setTextColor(0xFFFFE0A0.toInt())
+            setTextColor(0xFFE3C98F.toInt())
             setPadding(dp(14), dp(8), dp(6), dp(8))
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f
@@ -9862,7 +9877,7 @@ class MainActivity : AppCompatActivity() {
         val close = TextView(this).apply {
             text = "✕"
             textSize = 16f
-            setTextColor(0xFFFFE0A0.toInt())
+            setTextColor(0xFFE3C98F.toInt())
             setPadding(dp(14), dp(2), dp(14), dp(2))
             isClickable = true
             setOnClickListener { dismissCommentPopup() }
@@ -9900,7 +9915,7 @@ class MainActivity : AppCompatActivity() {
         val prev = TextView(this).apply {
             text = "‹ 上一页"
             textSize = 13f
-            setTextColor(0xFFFFE0A0.toInt())
+            setTextColor(0xFFE3C98F.toInt())
             setPadding(dp(14), dp(6), dp(14), dp(8))
             isClickable = true
             setOnClickListener { showCommentPage(commentPopupPageIndex - 1) }
@@ -9916,7 +9931,7 @@ class MainActivity : AppCompatActivity() {
         val next = TextView(this).apply {
             text = "下一页 ›"
             textSize = 13f
-            setTextColor(0xFFFFE0A0.toInt())
+            setTextColor(0xFFE3C98F.toInt())
             setPadding(dp(14), dp(6), dp(14), dp(8))
             isClickable = true
             setOnClickListener { showCommentPage(commentPopupPageIndex + 1) }
@@ -10188,7 +10203,7 @@ class MainActivity : AppCompatActivity() {
 
         val title = TextView(this).apply {
             text = "第 $round 回合 · 第 $ply 着"
-            setTextColor(0xFF9A6B00.toInt()); textSize = 15f
+            setTextColor(0xFF7A5A2A.toInt()); textSize = 15f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setPadding(dp(6), dp(4), dp(6), dp(8))
         }
@@ -10201,7 +10216,7 @@ class MainActivity : AppCompatActivity() {
             setText(chessGame.getEditableMoveComment())
             hint = "写下这一步的评注…"
             textSize = 14f
-            setTextColor(0xFF2B2015.toInt())
+            setTextColor(0xFF1B1E23.toInt())
             setHintTextColor(0xFF8C7A63.toInt())
             gravity = android.view.Gravity.TOP or android.view.Gravity.START
             minLines = 5
@@ -10247,7 +10262,7 @@ class MainActivity : AppCompatActivity() {
         }
         commentBtnRow.addView(Button(this).apply {
             text = "保存注释"; textSize = 14f
-            setTextColor(0xFFF0E6D2.toInt()); setBackgroundColor(0xFF2B2015.toInt())
+            setTextColor(0xFFE7ECEA.toInt()); setBackgroundColor(0xFF1B1E23.toInt())
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setPadding(0, 0, 0, 0)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
@@ -10260,7 +10275,7 @@ class MainActivity : AppCompatActivity() {
         // ★ 删除注释：把本步注释清空（原先写得不满意可撤掉）；原稿只读，不受影响。
         commentBtnRow.addView(Button(this).apply {
             text = "删除注释"; textSize = 14f
-            setTextColor(0xFFFFE0A0.toInt()); setBackgroundColor(0xFF5A4636.toInt())
+            setTextColor(0xFFE3C98F.toInt()); setBackgroundColor(0xFF5A4636.toInt())
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setPadding(0, 0, 0, 0)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
@@ -10283,7 +10298,7 @@ class MainActivity : AppCompatActivity() {
         box.addView(commentBtnRow)
         box.addView(Button(this).apply {
             text = "删除招法（本步及之后全部删除）"; textSize = 14f
-            setTextColor(0xFFFFE0A0.toInt()); setBackgroundColor(0xFF7A2E22.toInt())
+            setTextColor(0xFFE3C98F.toInt()); setBackgroundColor(0xFF7A2E22.toInt())
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(44)
@@ -10309,7 +10324,7 @@ class MainActivity : AppCompatActivity() {
         if (variations.isNotEmpty()) {
             box.addView(Button(this).apply {
                 text = "切换变着（本步共 ${variations.size} 个）"; textSize = 14f
-                setTextColor(0xFFF0E6D2.toInt()); setBackgroundColor(0xFF2B4A3A.toInt())
+                setTextColor(0xFFE7ECEA.toInt()); setBackgroundColor(0xFF2B4A3A.toInt())
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, dp(44)
@@ -10330,8 +10345,8 @@ class MainActivity : AppCompatActivity() {
         }
         fun barButton(label: String): Button = Button(this).apply {
             text = label; textSize = 14f
-            setTextColor(0xFFF0E6D2.toInt())
-            setBackgroundColor(0xFF2B2015.toInt())
+            setTextColor(0xFFE7ECEA.toInt())
+            setBackgroundColor(0xFF1B1E23.toInt())
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setPadding(0, 0, 0, 0)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
@@ -10355,10 +10370,10 @@ class MainActivity : AppCompatActivity() {
         }
         fun refreshBar() {
             // 白底 / 透明 互斥高亮；四个按钮本身始终不透明
-            btnMove.setBackgroundColor(if (moveMode) 0xFF9A6B00.toInt() else 0xFF2B2015.toInt())
-            btnWhite.setBackgroundColor(if (!transparentMode) 0xFF9A6B00.toInt() else 0xFF2B2015.toInt())
-            btnClear.setBackgroundColor(if (transparentMode) 0xFF9A6B00.toInt() else 0xFF2B2015.toInt())
-            btnClose.setBackgroundColor(0xFF2B2015.toInt())
+            btnMove.setBackgroundColor(if (moveMode) 0xFF7A5A2A.toInt() else 0xFF1B1E23.toInt())
+            btnWhite.setBackgroundColor(if (!transparentMode) 0xFF7A5A2A.toInt() else 0xFF1B1E23.toInt())
+            btnClear.setBackgroundColor(if (transparentMode) 0xFF7A5A2A.toInt() else 0xFF1B1E23.toInt())
+            btnClose.setBackgroundColor(0xFF1B1E23.toInt())
             title.text = "第 $round 回合 · 第 $ply 着" +
                 if (moveMode) "   ⇕ 按住此标题拖动" else ""
         }
@@ -10954,7 +10969,7 @@ class MainActivity : AppCompatActivity() {
             setupCropModeOn = false
             setupCropOverlay.visibility = View.GONE
             layoutSetupTools.visibility = View.GONE
-            btnSetupCrop.text = "✏️工具"
+            btnSetupCrop.text = "工具"
         } else {
             setupCropModeOn = true
             setupCropOverlay.clearAll()
@@ -10974,7 +10989,7 @@ class MainActivity : AppCompatActivity() {
         setupCropOverlay.clearAll()
         setupCropOverlay.visibility = View.GONE
         layoutSetupTools.visibility = View.GONE
-        btnSetupCrop.text = "✏️工具"
+        btnSetupCrop.text = "工具"
     }
 
     /**
@@ -10982,7 +10997,7 @@ class MainActivity : AppCompatActivity() {
      */
     private fun updateCropToolButtons() {
         if (!::btnCropCrown.isInitialized) return
-        btnCropCrown.text = if (setupCropOverlay.crownEnabled) "🔺圈点●" else "🔺圈点"
+        btnCropCrown.text = if (setupCropOverlay.crownEnabled) "圈点●" else "圈点"
         // 圈定≥4点 → 允许提交
         val crownReady = setupCropOverlay.crownEnabled && setupCropOverlay.crownCount >= 4
         btnSetupResubmit.visibility = if (crownReady) View.VISIBLE else View.GONE
@@ -11318,8 +11333,9 @@ class MainActivity : AppCompatActivity() {
                 if (it.length in 1..6 && it.all(Char::isLetterOrDigit)) it else "cbl"
             }
             val root = java.io.File(filesDir, com.pikafish.chess.qipu.QipuLibrary.USER_DIR).apply { mkdirs() }
-            // ★ 指定了分类就落到 qipu_user/<分类>/，宝库里就出现在那一类名下
-            val dir = if (category.isNullOrBlank()) root
+            // ★ 指定了分类就落到 qipu_user/<分类>/，宝库里就出现在那一类名下；
+            //   #11「我的上传」本身扫的是 qipu_user 根目录，不能再套一层子目录，否则上传后列表看不到。
+            val dir = if (category.isNullOrBlank() || category == "我的上传") root
                       else java.io.File(root, com.pikafish.chess.qipu.QipuLibrary.catDirName(category)).apply { mkdirs() }
             val target = java.io.File(dir, "$base.$ext")
             val tmp = java.io.File(dir, "$base.$ext.part")
@@ -11878,7 +11894,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(16, 13, 16, 13)
             textSize = 14f
             setTextColor(0xFF2B2115.toInt())
-            setBackgroundColor(0xFFFFB300.toInt())
+            setBackgroundColor(0xFFC8963E.toInt())
             setOnClickListener {
                 qipuUploadPickerLauncher?.launch(arrayOf("*/*"))
             }
@@ -12864,7 +12880,7 @@ class MainActivity : AppCompatActivity() {
                     setupCropOverlay.visibility = View.GONE
                     layoutSetupTools.visibility = View.GONE
                     btnSetupCrop.visibility = View.GONE
-                    btnSetupCrop.text = "✏️工具"
+                    btnSetupCrop.text = "工具"
                     btnSetupResubmit.visibility = View.GONE
                     setupThumbBaseHeightPx = -1f
                     setupThumbMaxHeightPx = -1f
@@ -12968,10 +12984,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateAllMenuButtonColors(color: Int) {
         val colorStateList = android.content.res.ColorStateList.valueOf(color)
-        // Tab栏按钮
-        btnTabSettings.backgroundTintList = colorStateList
-        btnTabGame.backgroundTintList = colorStateList
-        btnTabNotation.backgroundTintList = colorStateList
+        // ★ 页签不跟随统一菜单钮色：由 highlightTab 保留「选中/未选中」两档对比。
         // 底部快捷栏
         btnNewGame.backgroundTintList = colorStateList
         btnFlip.backgroundTintList = colorStateList
@@ -13049,6 +13062,8 @@ class MainActivity : AppCompatActivity() {
                 (sp.selectedView as? android.widget.TextView)?.setTextColor(0xFFFFFFFF.toInt())
             }
         }
+        // ★ 最后恢复页签高亮，避免统一菜单钮色把「选中/未选中」两档抹平
+        (navActiveTab ?: if (::btnTabGame.isInitialized) btnTabGame else null)?.let { highlightTab(it) }
     }
 
     private fun updateStatus() {

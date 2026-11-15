@@ -425,7 +425,7 @@ class CurveView(context: Context) : android.view.View(context) {
     private val cursorLine = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE; strokeWidth = dp(2.2f); color = 0xFFD32F2F.toInt()
     }
-    private val amberPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFB300.toInt() }
+    private val amberPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFC8963E.toInt() }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF999999.toInt(); textSize = sp(10f) }
     private val redText = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFE57373.toInt(); textSize = sp(10f) }
     private val blackText = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF90A4AE.toInt(); textSize = sp(10f) }

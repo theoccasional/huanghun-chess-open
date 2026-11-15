@@ -16,7 +16,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="对局结束"
-            android:textColor="#E8D5A3"
+            android:textColor="#E7ECEA"
             android:textSize="18sp"
             android:textStyle="bold"
             android:layout_centerVertical="true" />
@@ -75,7 +75,7 @@
             android:text="再来一局"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
-            android:backgroundTint="#FFB300" />
+            android:backgroundTint="#2F6B5A" />
 
         <Button
             android:id="@+id/btnSwapSides"
@@ -86,7 +86,7 @@
             android:text="换边"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
-            android:backgroundTint="#5C5040" />
+            android:backgroundTint="#66716C" />
     </LinearLayout>
 
 </LinearLayout>

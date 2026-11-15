@@ -12,8 +12,8 @@ android {
     defaultConfig {
         minSdk = 24
         targetSdk = 28
-        versionCode = 352
-        versionName = "2.9.316"
+        versionCode = 353
+        versionName = "2.9.317"
         ndk {
             abiFilters += listOf("arm64-v8a")
         }
@@ -34,11 +34,15 @@ android {
         create("slim") {
             dimension = "pack"
             applicationId = "com.pikafish.chess"
+            // 轻量包：没有大件时仍走「辎重包」引导
+            resValue("bool", "skip_heavy_console", "false")
         }
         create("full") {
             dimension = "pack"
             // ★★★ 统一化（A 方案）：单包＝全量本体，走主包名 com.pikafish.chess，一个图标。
             applicationId = "com.pikafish.chess"
+            // 全量包：源码构建若未放入私有模型，直接进主界面，不卡辎重包引导
+            resValue("bool", "skip_heavy_console", "true")
         }
     }
 

@@ -343,8 +343,8 @@ class ChallengeActivity : ComponentActivity() {
     /** 套用全局托底色：根背景用所选底色，标题/状态文字换对应衬托色便于阅读。 */
     private fun applyGlobalBackdrop() {
         try {
-            val color = com.pikafish.chess.ui.GlobalBackdrop.currentColor(this)
-            val fg = com.pikafish.chess.ui.GlobalBackdrop.foreground(this, color)
+            // ★ 文字压在「底部菜单底板」上，前景色就必须按菜单底色算，不能按背景图算
+            val fg = com.pikafish.chess.ui.GlobalBackdrop.menuForeground(this)
             rootFrame?.background = com.pikafish.chess.ui.GlobalBackdrop.backdropDrawable(this)
             if (::statusText.isInitialized) statusText.setTextColor(fg)
             if (::eccoText.isInitialized) eccoText.setTextColor(fg)
@@ -552,11 +552,14 @@ class ChallengeActivity : ComponentActivity() {
         setTypeface(null, android.graphics.Typeface.BOLD)
     }
 
-    /** ★ 自适应前景色：随全局托底色深浅自动切深/浅字，杜绝"浅字配浅底"灰蒙蒙看不清。 */
+    /**
+     * ★ 自适应前景色：按**底部菜单底色**（不是全局背景图）取深/浅字。
+     *   旧写法拿"全局托底图"的颜色算前景，可菜单底板是独立的浅色（#FFFFFF 等），
+     *   一旦用户选了深色背景图 → 算出来是白字，压在白菜单上就成了"看不见的白字"（ECCO/状态行）。
+     */
     private val adaptiveFg: Int
         get() = runCatching {
-            val c = com.pikafish.chess.ui.GlobalBackdrop.currentColor(this)
-            com.pikafish.chess.ui.GlobalBackdrop.foreground(this, c)
+            com.pikafish.chess.ui.GlobalBackdrop.menuForeground(this)
         }.getOrDefault(android.graphics.Color.parseColor("#202020"))
 
     // ═══ 棋盘基准高度（dp）：与主界面棋盘外罩理想高度同源 ≈1.16×屏宽 ═══
